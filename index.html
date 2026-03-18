@@ -817,7 +817,7 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
 // ============================================================
 // 状態管理
 // ============================================================
-const expenses = [];
+let expenses = [];
 let travelers = [{no:'1',name:'安枝　信次（GDEC）'},{no:'2',name:'安枝　信次（東販）'}];
 let masterRoutes = []; // 経路マスタ（CSVから読み込み）
 let pendingRows = [];  // 照合済み交通費行
@@ -1910,12 +1910,15 @@ function applyToList(){
     const unitFare=r._manualFare!=null?r._manualFare:(hit?hit.fare:0);
     const route=hit?hit.route:r.from&&r.to?r.from+'→'+r.to:'不明';
     const routeNo=hit&&r._manualFare==null?hit.no:null;
-    const qty=r.gasRt||2; // G列：空欄=往復(2)、1=片道
+    const qty=r.gasRt||2;
     const fare=unitFare*qty;
-    if(unitFare>0){
+    // 未登録（unitFare=0）でも区間・利用日を出すために追加
+    if(unitFare>0||(!hit&&r.from&&r.to)){
       expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
         from:r.from,to:r.to,route,fare,unitFare,
-        qty,trip:qty===2?'往復':'片道',routeType:'transit',...(routeNo?{routeNo}:{})});
+        qty,trip:qty===2?'往復':'片道',routeType:'transit',
+        _unregistered:!hit&&unitFare===0,  // 未登録フラグ
+        ...(routeNo?{routeNo}:{})});
     }
   });
   renderList();
@@ -2479,44 +2482,63 @@ function renderList(){
     items.forEach((e,ei)=>{
       const eidx=expenses.indexOf(e);
       if(e._editing){
-        // 出発地・目的地からマスタ検索して交通機関・金額をヒント表示
         const hit=e.from&&e.to?matchRoute(e.from,e.to):null;
-        // 種別ドロップダウン：マスタなし系の種別
         const extraTypes=['タクシー代','宿泊費（実費）','駐車料金'];
         const isExtra=!e.from&&!e.to||extraTypes.includes(e.route)||e.route==='';
+        // 未登録行は交通手段をテキスト入力、それ以外は通常
         const routeCell=isExtra
           ?`<select onchange="expenses[${eidx}].route=this.value" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
               <option value="" ${e.route===''?'selected':''}>-- 選択 --</option>
               ${extraTypes.map(t=>`<option value="${t}" ${e.route===t?'selected':''}>${t}</option>`).join('')}
             </select>`
           :`<input type="text" value="${e.route||''}" onchange="expenses[${eidx}].route=this.value" style="width:100px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/>`;
-        html+=`<tr style="background:var(--info-bg);">
-          <td><input type="date" value="${e.date}" onchange="expenses[${eidx}].date=this.value" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
-          <td style="white-space:nowrap;">
-            <input type="text" value="${e.from||''}" onchange="expenses[${eidx}].from=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="出発地"/>
-            →
-            <input type="text" value="${e.to||''}" onchange="expenses[${eidx}].to=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="目的地"/>
-            ${hit?`<span style="font-size:10px;color:var(--ok);margin-left:4px;">✓ ${hit.route}</span>`:''}
-          </td>
-          <td>${routeCell}</td>
-          <td style="text-align:center;">
-            <select onchange="updateExpenseQtyByIdx(${eidx},this.value)" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
-              <option value="1" ${e.qty===1?'selected':''}>1（片道）</option>
-              <option value="2" ${e.qty===2?'selected':''}>2（往復）</option>
-            </select>
-          </td>
-          <td style="text-align:right;">
-            <input type="number" inputmode="numeric" value="${e.unitFare||0}" onchange="updateExpenseFareByIdx(${eidx},parseInt(this.value)||0)" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--border);border-radius:4px;background:#fff;"/>
-          </td>
-          <td><button class="btn btn-sm btn-primary" onclick="confirmExpenseByIdx(${eidx})">確定</button></td>
-        </tr>`;
+
+        if(e._unregistered){
+          // 未登録行：区間は固定、交通手段と金額だけ編集
+          html+=`<tr style="background:var(--warn-bg);">
+            <td style="color:var(--t2);font-size:12px;">${e.date}</td>
+            <td style="font-weight:500;">${e.from}→${e.to}</td>
+            <td><input type="text" value="" onchange="expenses[${eidx}].route=this.value" placeholder="例：京急、JR" style="width:110px;padding:3px 5px;font-size:12px;border:.5px solid var(--warn-b);border-radius:4px;background:#fff;"/></td>
+            <td style="text-align:center;">
+              <select onchange="updateExpenseQtyByIdx(${eidx},this.value)" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
+                <option value="1" ${e.qty===1?'selected':''}>1（片道）</option>
+                <option value="2" ${e.qty===2?'selected':''}>2（往復）</option>
+              </select>
+            </td>
+            <td style="text-align:right;">
+              <input type="number" inputmode="numeric" value="${e.unitFare||''}" onchange="updateExpenseFareByIdx(${eidx},parseInt(this.value)||0)" placeholder="運賃" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--warn-b);border-radius:4px;background:#fff;"/>
+            </td>
+            <td><button class="btn btn-sm btn-primary" onclick="confirmExpenseByIdx(${eidx})">確定</button></td>
+          </tr>`;
+        }else{
+          html+=`<tr style="background:var(--info-bg);">
+            <td><input type="date" value="${e.date}" onchange="expenses[${eidx}].date=this.value" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+            <td style="white-space:nowrap;">
+              <input type="text" value="${e.from||''}" onchange="expenses[${eidx}].from=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="出発地"/>
+              →
+              <input type="text" value="${e.to||''}" onchange="expenses[${eidx}].to=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="目的地"/>
+              ${hit?`<span style="font-size:10px;color:var(--ok);margin-left:4px;">✓ ${hit.route}</span>`:''}
+            </td>
+            <td>${routeCell}</td>
+            <td style="text-align:center;">
+              <select onchange="updateExpenseQtyByIdx(${eidx},this.value)" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
+                <option value="1" ${e.qty===1?'selected':''}>1（片道）</option>
+                <option value="2" ${e.qty===2?'selected':''}>2（往復）</option>
+              </select>
+            </td>
+            <td style="text-align:right;">
+              <input type="number" inputmode="numeric" value="${e.unitFare||0}" onchange="updateExpenseFareByIdx(${eidx},parseInt(this.value)||0)" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--border);border-radius:4px;background:#fff;"/>
+            </td>
+            <td><button class="btn btn-sm btn-primary" onclick="confirmExpenseByIdx(${eidx})">確定</button></td>
+          </tr>`;
+        }
       }else{
-        html+=`<tr style="cursor:pointer;" onclick="editExpenseByIdx(${eidx})">
+        html+=`<tr style="cursor:pointer;${e._unregistered?'background:var(--warn-bg);':''}" onclick="editExpenseByIdx(${eidx})">
           <td style="white-space:nowrap;">${e.date}</td>
           <td>${e.from&&e.to?e.from+'→'+e.to:e.route}</td>
-          <td>${typeTag(e.routeType)} ${e.from&&e.to?e.route:''}</td>
+          <td>${e._unregistered?'<span class="badge b-new">未登録　クリックして入力</span>':`${typeTag(e.routeType)} ${e.from&&e.to?e.route:''}`}</td>
           <td style="text-align:center;color:var(--t2);">${e.qty}（${e.trip}）</td>
-          <td style="text-align:right;font-weight:500;">¥${e.fare.toLocaleString()}</td>
+          <td style="text-align:right;font-weight:500;">${e._unregistered?'<span style="color:var(--warn);">—</span>':`¥${e.fare.toLocaleString()}`}</td>
           <td><button class="del-btn" onclick="event.stopPropagation();expenses.splice(${eidx},1);renderList()">✕</button></td>
         </tr>`;
       }
@@ -2553,30 +2575,40 @@ function confirmExpenseByIdx(idx){
   const e=expenses[idx];
   if(!e){return;}
   e._editing=false;
-  // 経路番号がなく・経費でなく・金額が入っている → 経路マスタに新規追加
-  if(!e.routeNo&&e.from&&e.to&&e.unitFare>0&&!e._extra&&!e._busAuto){
+  // 未登録行で金額と交通手段が入力されたら登録済みに更新
+  if(e._unregistered&&e.unitFare>0&&e.route){
+    e._unregistered=false;
+    e.fare=e.unitFare*e.qty;
+    // 経路マスタに新規追加
     const existing=matchRoute(e.from,e.to);
     if(!existing){
-      // 経路番号を採番
+      const mn=getMaxNums();
+      const newNo=mn.gen+1;
+      masterRoutes.push({no:String(newNo),from:e.from,to:e.to,kana:'',route:e.route,fare:e.unitFare});
+      e.routeNo=String(newNo);
+      e._newMaster=true; // 今回新規追加した経路フラグ
+      document.getElementById('max-gen').value=newNo;
+      updateNumPreview();
+      renderMasterList(document.getElementById('master-search')?document.getElementById('master-search').value:'');
+      showMsg('list-msg',`経路マスタに追加しました（${e.from}→${e.to} 経路番号${newNo}）`,'ok');
+    }
+  }else if(!e.routeNo&&e.from&&e.to&&e.unitFare>0&&!e._extra&&!e._busAuto){
+    // 通常行でも未登録ならマスタに追加
+    const existing=matchRoute(e.from,e.to);
+    if(!existing){
       const mn=getMaxNums();
       const routeType=e.routeType;
       let newNo;
       if(routeType==='highway'||routeType==='gas') newNo=mn.h500+1;
       else if(routeType==='flight') newNo=mn.h700+1;
       else newNo=mn.gen+1;
-      // マスタに追加
       masterRoutes.push({no:String(newNo),from:e.from,to:e.to,kana:'',route:e.route,fare:e.unitFare});
       e.routeNo=String(newNo);
-      // 採番設定を更新
-      if(routeType==='highway'||routeType==='gas'){
-        document.getElementById('max-500').value=newNo;
-      }else if(routeType==='flight'){
-        document.getElementById('max-700').value=newNo;
-      }else{
-        document.getElementById('max-gen').value=newNo;
-      }
+      e._newMaster=true; // 今回新規追加した経路フラグ
+      if(routeType==='highway'||routeType==='gas') document.getElementById('max-500').value=newNo;
+      else if(routeType==='flight') document.getElementById('max-700').value=newNo;
+      else document.getElementById('max-gen').value=newNo;
       updateNumPreview();
-      // マスタ一覧を再描画
       renderMasterList(document.getElementById('master-search')?document.getElementById('master-search').value:'');
       showMsg('list-msg',`経路マスタに追加しました（${e.from}→${e.to} 経路番号${newNo}）`,'ok');
     }
@@ -2734,17 +2766,16 @@ function buildMeisaiRows(){
 // 経路マスタ新規追加分
 function buildRouteRows(){
   const sorted=[...expenses].sort((a,b)=>a.date.localeCompare(b.date));
-  const nm=assignRouteNumbers(sorted);
   const seen=new Set();const rows=[];
-  const excludeKeihi=e=>getKeihiNo(e.route)!=='';
+  const excludeKeihi=e=>getKeihiNo(e.route,e.routeType)!=='';
   sorted.forEach(e=>{
     if(excludeKeihi(e)||e._busAuto||e._extra)return;
-    if(e.routeNo)return; // 既存マスタ
-    const k=`${e.from}|${e.to}|${e.route}`;
+    // routeNoがあっても_newMasterなら今回新規追加なので出力する
+    if(e.routeNo&&!e._newMaster)return;
+    const k=`${e.from}|${e.to}`;
     if(!seen.has(k)){
       seen.add(k);
-      rows.push([nm.get(`${e.from}|${e.to}|${e.route}|${e.routeType}`)||'',
-        e.from,e.to,'',e.route,e.unitFare||e.fare]);
+      rows.push([e.routeNo||'', e.from, e.to, '', e.route, e.unitFare||e.fare]);
     }
   });
   filledRoutes.forEach(r=>{
