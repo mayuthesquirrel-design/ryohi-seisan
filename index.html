@@ -127,6 +127,9 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
       <button class="nav-item active" onclick="nav('bulk')" id="nav-bulk">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>Excel一括処理
       </button>
+      <button class="nav-item" onclick="nav('quick')" id="nav-quick">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1.5 4.5H14l-3.5 2.5 1.5 4.5L8 11l-4 2.5 1.5-4.5L2 6.5h4.5z"/></svg>クイック入力
+      </button>
       <button class="nav-item" onclick="nav('single')" id="nav-single">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5V8l2 2"/></svg>1件手動入力
       </button>
@@ -275,6 +278,218 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- クイック入力 -->
+    <div class="page" id="page-quick">
+      <div class="page-title">クイック入力</div>
+
+      <!-- 前回コピー -->
+      <div class="card" id="quick-copy-card">
+        <div class="card-title">前回の精算をコピー</div>
+        <div id="quick-copy-list">
+          <div style="font-size:13px;color:var(--t3);">精算リストにデータがありません</div>
+        </div>
+      </div>
+
+      <!-- お気に入りルート -->
+      <div class="card">
+        <div class="card-title">お気に入りルート <span style="font-size:10px;font-weight:400;color:var(--t3);">よく使うルートをワンクリックで追加</span></div>
+        <div id="fav-route-list" style="margin-bottom:10px;"></div>
+        <button class="btn btn-sm" onclick="showAddFavForm()">＋ お気に入りを追加</button>
+        <div id="add-fav-form" style="display:none;margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--rs);">
+          <div class="g2" style="margin-bottom:8px;">
+            <div class="f">
+              <label>出発地</label>
+              <input type="text" id="fav-from" list="fav-from-list" placeholder="例：京急久里浜"/>
+              <datalist id="fav-from-list"></datalist>
+            </div>
+            <div class="f">
+              <label>目的地</label>
+              <input type="text" id="fav-to" list="fav-to-list" placeholder="例：豊洲"/>
+              <datalist id="fav-to-list"></datalist>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:8px;">
+            <div class="f">
+              <label>名前（任意）</label>
+              <input type="text" id="fav-name" placeholder="例：豊洲打合"/>
+            </div>
+            <div class="f">
+              <label>往復</label>
+              <select id="fav-rt">
+                <option value="2">往復</option>
+                <option value="1">片道</option>
+              </select>
+            </div>
+          </div>
+          <div id="fav-preview" class="calc-box" style="margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="saveFavRoute()">登録</button>
+            <button class="btn btn-sm" onclick="document.getElementById('add-fav-form').style.display='none'">キャンセル</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 今日の出張を追加 -->
+      <div class="card">
+        <div class="card-title">今日の出張を追加</div>
+        <div class="g3" style="margin-bottom:12px;">
+          <div class="f">
+            <label>見積番号</label>
+            <input type="text" id="q-mitsumori" placeholder="例：202601"/>
+          </div>
+          <div class="f">
+            <label>旅行者</label>
+            <select id="q-traveler" onchange="onQTravelerChange()"><option value="">選択</option></select>
+          </div>
+          <div class="f">
+            <label>利用日</label>
+            <input type="date" id="q-date"/>
+          </div>
+        </div>
+        <div class="g2" style="margin-bottom:12px;">
+          <div class="f">
+            <label>出張先</label>
+            <input type="text" id="q-dest" placeholder="例：豊洲"/>
+          </div>
+          <div class="f">
+            <label>用件</label>
+            <input type="text" id="q-purpose" placeholder="例：打合"/>
+          </div>
+        </div>
+
+        <div class="divider"><div class="divider-line"></div><div class="divider-txt">交通費を追加</div><div class="divider-line"></div></div>
+
+        <div class="gswap" style="margin-bottom:8px;">
+          <div class="f">
+            <label>出発地</label>
+            <input type="text" id="q-from" list="q-from-list" placeholder="経路マスタから選択" oninput="updateQFavPreview()"/>
+            <datalist id="q-from-list"></datalist>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+            <button class="swap-btn" onclick="sw('q-from','q-to');updateQFavPreview()">⇄</button>
+          </div>
+          <div class="f">
+            <label>目的地</label>
+            <input type="text" id="q-to" list="q-to-list" placeholder="経路マスタから選択" oninput="updateQFavPreview()"/>
+            <datalist id="q-to-list"></datalist>
+          </div>
+        </div>
+        <div id="q-route-preview" class="calc-box" style="margin-bottom:10px;"></div>
+        <div class="g2" style="margin-bottom:0;">
+          <div class="f">
+            <label>往復</label>
+            <select id="q-rt">
+              <option value="2">往復</option>
+              <option value="1">片道</option>
+            </select>
+          </div>
+          <div class="f">
+            <label style="visibility:hidden;">x</label>
+            <button class="btn btn-primary btn-full" onclick="addQuickExpense()">精算リストに追加</button>
+          </div>
+        </div>
+        <div id="q-msg"></div>
+      </div>
+    </div>
+
+    <!-- クイック入力 -->
+    <div class="page" id="page-quick">
+      <div class="page-title">クイック入力</div>
+
+      <!-- お気に入りから呼び出し -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>お気に入り</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="exportFavorites()">エクスポート ↓</button>
+            <button class="btn btn-sm" onclick="document.getElementById('fi-favorites').click()">インポート ↑</button>
+            <input type="file" id="fi-favorites" accept=".json" style="display:none" onchange="importFavorites(this.files[0])"/>
+            <button class="btn btn-sm" onclick="saveFavorite()">現在の内容を登録 ★</button>
+          </div>
+        </div>
+        <div id="favorite-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;">
+          <span style="font-size:12px;color:var(--t3);">登録されたお気に入りがありません</span>
+        </div>
+      </div>
+
+      <!-- 前回コピー -->
+      <div class="card" id="prev-copy-card" style="display:none;">
+        <div class="card-title">前回の精算からコピー</div>
+        <div id="prev-copy-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
+      <!-- 出張情報入力 -->
+      <div class="card">
+        <div class="card-title">出張情報</div>
+        <div class="g3">
+          <div class="f"><label>見積番号</label><input type="text" id="q-mitsumori" placeholder="例：202601"/></div>
+          <div class="f"><label>旅行者</label>
+            <select id="q-traveler" onchange="onQTravelerChange()">
+              <option value="">選択</option>
+            </select>
+          </div>
+          <div class="f"><label>出張日</label><input type="date" id="q-date" onchange="syncQDate()"/></div>
+        </div>
+        <div class="g3">
+          <div class="f"><label>出張先</label><input type="text" id="q-dest" placeholder="例：横浜"/></div>
+          <div class="f"><label>用件</label><input type="text" id="q-purpose" placeholder="例：打合"/></div>
+          <div class="f"><label>出張日数</label><input type="number" inputmode="numeric" id="q-days" value="1" min="1"/></div>
+        </div>
+        <div class="g2">
+          <div class="f"><label>宿泊日数</label><input type="number" inputmode="numeric" id="q-nights" value="0" min="0"/></div>
+          <div class="f"><label>海外出張</label>
+            <select id="q-overseas"><option value="">なし</option><option value="1">あり</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交通費入力 -->
+      <div class="card">
+        <div class="card-title">交通費</div>
+        <div id="q-routes-list"></div>
+        <div style="margin-top:10px;">
+          <div class="gswap" style="margin-bottom:8px;">
+            <div class="f">
+              <label>出発地</label>
+              <input type="text" id="q-from" list="q-from-list" placeholder="例：京急久里浜" oninput="qLookupRoute()"/>
+              <datalist id="q-from-list"></datalist>
+            </div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+              <button class="swap-btn" onclick="sw('q-from','q-to');qLookupRoute()">⇄</button>
+            </div>
+            <div class="f">
+              <label>目的地</label>
+              <input type="text" id="q-to" list="q-to-list" placeholder="例：豊洲" oninput="qLookupRoute()"/>
+              <datalist id="q-to-list"></datalist>
+            </div>
+          </div>
+          <div id="q-route-preview" class="calc-box" style="margin-bottom:8px;display:none;"></div>
+          <div class="g3">
+            <div class="f"><label>往復</label>
+              <select id="q-rt"><option value="2">往復</option><option value="1">片道</option></select>
+            </div>
+            <div class="f"><label>金額（手動上書き）</label>
+              <div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-fare" placeholder="自動取得" min="0" step="10"/></div>
+            </div>
+            <div class="f"><label style="visibility:hidden;">x</label>
+              <button class="btn btn-primary btn-full" onclick="addQRoute()">追加 ＋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- その他費用 -->
+        <div class="divider"><div class="divider-line"></div><div class="divider-txt">その他費用</div><div class="divider-line"></div></div>
+        <div class="g3">
+          <div class="f"><label>タクシー代</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-taxi" placeholder="0" min="0"/></div></div>
+          <div class="f"><label>宿泊費（実費）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-hotel-actual" placeholder="0" min="0"/></div></div>
+          <div class="f"><label>駐車料金</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-parking" placeholder="0" min="0"/></div></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" style="margin-bottom:24px;" onclick="applyQuickInput()">精算リストに追加 →</button>
+      <div id="q-msg"></div>
     </div>
 
     <!-- 1件手動入力 -->
@@ -621,20 +836,249 @@ renderTravelerSelect();
 renderTravelerSettings();
 
 // ============================================================
-// ナビ
+// クイック入力
 // ============================================================
+let favRoutes = JSON.parse(localStorage.getItem('favRoutes')||'[]');
+
+function initQuickPage(){
+  // 見積番号自動採番
+  const qm=document.getElementById('q-mitsumori');
+  if(qm&&!qm.value) qm.value=nextMitsumori();
+  // 旅行者セレクト
+  const sel=document.getElementById('q-traveler');
+  if(sel){
+    sel.innerHTML='<option value="">選択</option>';
+    travelers.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.no;opt.textContent=`${t.no}：${t.name}`;
+      sel.appendChild(opt);
+    });
+  }
+  // 日付
+  const qd=document.getElementById('q-date');
+  if(qd&&!qd.value) qd.value=todayStr;
+  // datalistを経路マスタで更新
+  updateQDatalist();
+  // お気に入り描画
+  renderFavRoutes();
+  // 前回コピー描画
+  renderCopyList();
+}
+
+function onQTravelerChange(){}
+
+function updateQDatalist(){
+  const froms=[...new Set(masterRoutes.map(r=>r.from))].sort();
+  const tos=[...new Set(masterRoutes.map(r=>r.to))].sort();
+  ['q-from-list','fav-from-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(dl){dl.innerHTML=froms.map(v=>`<option value="${v}">`).join('');}
+  });
+  ['q-to-list','fav-to-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(dl){dl.innerHTML=tos.map(v=>`<option value="${v}">`).join('');}
+  });
+}
+
+function updateQFavPreview(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const el=document.getElementById('q-route-preview');
+  if(!from||!to){el.textContent='出発地と目的地を入力してください';return;}
+  const hit=matchRoute(from,to);
+  if(hit){
+    el.innerHTML=`<strong>${hit.route}</strong>　片道 ¥${hit.fare.toLocaleString()}`;
+  }else{
+    el.innerHTML=`<span style="color:var(--warn);">経路マスタに未登録</span>`;
+  }
+}
+
+function addQuickExpense(){
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const travelerNo=document.getElementById('q-traveler').value;
+  const date=document.getElementById('q-date').value;
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const rt=parseInt(document.getElementById('q-rt').value);
+
+  if(!mitsumori){showMsg('q-msg','見積番号を入力してください','err');return;}
+  if(!from||!to){showMsg('q-msg','出発地と目的地を入力してください','err');return;}
+
+  // 出張情報をpendingTripsに追加（なければ）
+  if(!pendingTrips.find(t=>String(t.mitsumori)===mitsumori)){
+    const tno=travelerNo;
+    const tobj=travelers.find(t=>t.no===tno);
+    const cfg=getCfg();
+    pendingTrips.push({
+      mitsumori,date,travelerNo:tno,travelerName:tobj?tobj.name:'',
+      days:1,nights:0,dest,purpose,overseas:'',
+      daily:cfg.daily,hotel:0,kaigai:0
+    });
+  }
+
+  // バスの自動追加
+  const busStation=getCfg().busStation;
+  const busHit=matchRoute('山手南',busStation)||matchRoute(busStation,'山手南');
+  if(busHit&&(from.includes(busStation)||to.includes(busStation))){
+    const busFrom=from.includes(busStation)?'山手南':busStation;
+    const busto=from.includes(busStation)?busStation:'山手南';
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,
+      from:busFrom,to:busto,route:'京急バス',
+      fare:190*rt,unitFare:190,qty:rt,trip:rt===2?'往復':'片道',
+      routeType:'transit',routeNo:busHit.no});
+  }
+
+  // 交通費本体
+  const hit=matchRoute(from,to);
+  const fare=hit?hit.fare:0;
+  const route=hit?hit.route:`${from}→${to}`;
+  if(fare>0){
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,from,to,
+      route,fare:fare*rt,unitFare:fare,qty:rt,trip:rt===2?'往復':'片道',
+      routeType:'transit',routeNo:hit?hit.no:null});
+    showMsg('q-msg',`追加しました（${route} ¥${(fare*rt).toLocaleString()}）`,'ok');
+    renderList();
+    // 次の見積番号に更新
+    document.getElementById('q-mitsumori').value=autoIncrementMitsumori(mitsumori);
+    document.getElementById('q-from').value='';
+    document.getElementById('q-to').value='';
+    document.getElementById('q-route-preview').textContent='出発地と目的地を入力してください';
+  }else{
+    showMsg('q-msg','経路マスタに未登録です。出発地・目的地を確認してください','err');
+  }
+}
+
+// お気に入りルート
+function renderFavRoutes(){
+  const el=document.getElementById('fav-route-list');
+  if(!el)return;
+  if(!favRoutes.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--t3);">まだ登録されていません</div>';
+    return;
+  }
+  el.innerHTML=favRoutes.map((f,i)=>{
+    const hit=matchRoute(f.from,f.to);
+    const fare=hit?hit.fare*f.rt:0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px;background:var(--bg);border-radius:var(--rs);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${f.name||f.from+'→'+f.to}</div>
+        <div style="font-size:11px;color:var(--t3);">${f.from}→${f.to}　${f.rt===2?'往復':'片道'}　${hit?'¥'+fare.toLocaleString():'未登録'}</div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="applyFavRoute(${i})">追加</button>
+      <button class="del-btn" onclick="deleteFavRoute(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function showAddFavForm(){
+  document.getElementById('add-fav-form').style.display='block';
+  updateQDatalist();
+}
+
+function saveFavRoute(){
+  const from=document.getElementById('fav-from').value.trim();
+  const to=document.getElementById('fav-to').value.trim();
+  const name=document.getElementById('fav-name').value.trim();
+  const rt=parseInt(document.getElementById('fav-rt').value);
+  if(!from||!to){alert('出発地と目的地を入力してください');return;}
+  favRoutes.push({from,to,name,rt});
+  localStorage.setItem('favRoutes',JSON.stringify(favRoutes));
+  renderFavRoutes();
+  document.getElementById('add-fav-form').style.display='none';
+  ['fav-from','fav-to','fav-name'].forEach(id=>document.getElementById(id).value='');
+}
+
+function deleteFavRoute(i){
+  favRoutes.splice(i,1);
+  localStorage.setItem('favRoutes',JSON.stringify(favRoutes));
+  renderFavRoutes();
+}
+
+function applyFavRoute(i){
+  const f=favRoutes[i];
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const date=document.getElementById('q-date').value;
+  if(!mitsumori){alert('先に見積番号を入力してください');return;}
+  document.getElementById('q-from').value=f.from;
+  document.getElementById('q-to').value=f.to;
+  document.getElementById('q-rt').value=String(f.rt);
+  updateQFavPreview();
+  // そのままaddQuickExpenseを呼ぶ
+  setTimeout(()=>addQuickExpense(),100);
+}
+
+// 前回コピー
+function renderCopyList(){
+  const el=document.getElementById('quick-copy-list');
+  if(!el)return;
+  // 精算リストの見積番号ごとにグループ化
+  const groups={};
+  expenses.forEach(e=>{
+    const k=String(e.mitsumori);
+    if(!groups[k])groups[k]=[];
+    groups[k].push(e);
+  });
+  const keys=Object.keys(groups);
+  if(!keys.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--t3);">精算リストにデータがありません</div>';
+    return;
+  }
+  el.innerHTML=keys.map(no=>{
+    const trip=pendingTrips.find(t=>String(t.mitsumori)===no);
+    const items=groups[no];
+    const total=items.reduce((s,e)=>s+e.fare,0);
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 14px;background:var(--bg);border-radius:var(--rs);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">見積番号 ${no}${trip?`　${trip.dest}　${trip.purpose}`:''}</div>
+        <div style="font-size:11px;color:var(--t3);">${trip?trip.date:''}　${items.length}件　¥${total.toLocaleString()}</div>
+      </div>
+      <button class="btn btn-sm" onclick="copyFromPrev('${no}')">日付変えてコピー</button>
+    </div>`;
+  }).join('');
+}
+
+function copyFromPrev(srcNo){
+  const newNo=nextMitsumori();
+  const newDate=document.getElementById('q-date')?document.getElementById('q-date').value:todayStr;
+  const date=prompt(`コピー先の利用日を入力してください（例：${todayStr}）`,newDate);
+  if(!date)return;
+  const newMitsumori=prompt('新しい見積番号を入力してください',newNo);
+  if(!newMitsumori)return;
+
+  // 元の出張情報をコピー
+  const srcTrip=pendingTrips.find(t=>String(t.mitsumori)===srcNo);
+  if(srcTrip){
+    pendingTrips.push({...srcTrip,mitsumori:newMitsumori,date});
+  }
+
+  // 元の交通費をコピー
+  const srcItems=expenses.filter(e=>String(e.mitsumori)===srcNo);
+  srcItems.forEach(e=>{
+    expenses.push({...e,id:Date.now()+Math.random(),mitsumori:newMitsumori,date});
+  });
+
+  renderList();
+  renderCopyList();
+  showMsg('q-msg',`見積番号 ${newMitsumori} としてコピーしました`,'ok');
+}
+
+
 function nav(n){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('nav-'+n).classList.add('active');
   document.getElementById('page-'+n).classList.add('active');
-  // 1件入力タブを開いたとき見積番号を自動採番
   if(n==='single'){
     const el=document.getElementById('t-mitsumori');
-    if(el&&!el.value){
-      el.value=nextMitsumori();
-    }
+    if(el&&!el.value) el.value=nextMitsumori();
   }
+  if(n==='quick') initQuickTab();
+  if(n==='quick'){
+    initQuickPage();
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function downloadTemplate(){
@@ -1603,8 +2047,383 @@ function showMsg(id,txt,type){
 }
 
 // ============================================================
-// 精算リスト
+// クイック入力
 // ============================================================
+let favorites = JSON.parse(localStorage.getItem('ryohi_favorites')||'[]');
+let qRoutes = []; // 追加済み交通費行
+
+function initQuickTab(){
+  // 見積番号自動採番
+  const mEl=document.getElementById('q-mitsumori');
+  if(mEl&&!mEl.value) mEl.value=nextMitsumori();
+  // 日付デフォルト
+  const dEl=document.getElementById('q-date');
+  if(dEl&&!dEl.value) dEl.value=todayStr;
+  // 旅行者セレクト
+  const sel=document.getElementById('q-traveler');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">選択</option>';
+  travelers.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.no;opt.textContent=`${t.no}：${t.name}`;
+    sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+  // 経路マスタからdatalist生成
+  buildQDatalist();
+  // お気に入り表示
+  renderFavorites();
+  // 前回コピー表示
+  renderPrevCopy();
+  // 交通費リスト
+  renderQRoutes();
+}
+
+function buildQDatalist(){
+  const froms=[...new Set(masterRoutes.map(r=>r.from))].sort();
+  const tos=[...new Set(masterRoutes.map(r=>r.to))].sort();
+  const allStations=[...new Set([...froms,...tos])].sort();
+  ['q-from-list','q-to-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(!dl)return;
+    dl.innerHTML=allStations.map(s=>`<option value="${s}">`).join('');
+  });
+}
+
+function onQTravelerChange(){}
+
+function syncQDate(){
+  // 日付変更は特に他に連動しない
+}
+
+function qLookupRoute(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const preview=document.getElementById('q-route-preview');
+  const fareEl=document.getElementById('q-fare');
+  if(!from||!to){preview.style.display='none';return;}
+  const hit=matchRoute(from,to);
+  if(hit){
+    preview.style.display='block';
+    preview.innerHTML=`<span style="color:var(--ok);">✓ ${hit.route}　¥${hit.fare.toLocaleString()}</span>`;
+    if(!fareEl.value) fareEl.placeholder=hit.fare;
+  }else{
+    preview.style.display='block';
+    preview.innerHTML=`<span style="color:var(--warn);">未登録（金額を手動入力してください）</span>`;
+  }
+}
+
+function addQRoute(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const rt=parseInt(document.getElementById('q-rt').value)||2;
+  const fareInput=parseInt(document.getElementById('q-fare').value)||0;
+  if(!from||!to){showMsg('q-msg','出発地と目的地を入力してください','err');return;}
+  const hit=matchRoute(from,to);
+  const unitFare=fareInput||( hit?hit.fare:0);
+  if(!unitFare){showMsg('q-msg','金額を入力してください','err');return;}
+  qRoutes.push({
+    from,to,
+    route:hit?hit.route:`${from}→${to}`,
+    routeNo:hit?hit.no:null,
+    unitFare,fare:unitFare*rt,qty:rt,trip:rt===2?'往復':'片道',
+    routeType:'transit'
+  });
+  renderQRoutes();
+  // 入力欄クリア
+  document.getElementById('q-from').value='';
+  document.getElementById('q-to').value='';
+  document.getElementById('q-fare').value='';
+  document.getElementById('q-fare').placeholder='自動取得';
+  document.getElementById('q-route-preview').style.display='none';
+  showMsg('q-msg','追加しました','ok');
+}
+
+function renderQRoutes(){
+  const el=document.getElementById('q-routes-list');
+  if(!qRoutes.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--t3);padding:8px 0;">交通費がまだ追加されていません</div>';
+    return;
+  }
+  el.innerHTML=`<table class="tbl" style="margin-bottom:8px;"><thead><tr><th>出発地</th><th>目的地</th><th>交通手段</th><th style="text-align:center;">数量</th><th style="text-align:right;">金額</th><th></th></tr></thead><tbody>`+
+    qRoutes.map((r,i)=>`<tr>
+      <td>${r.from}</td><td>${r.to}</td><td>${r.route}</td>
+      <td style="text-align:center;color:var(--t2);">${r.qty}（${r.trip}）</td>
+      <td style="text-align:right;font-weight:500;">¥${r.fare.toLocaleString()}</td>
+      <td><button class="del-btn" onclick="qRoutes.splice(${i},1);renderQRoutes()">✕</button></td>
+    </tr>`).join('')+
+    `</tbody></table>`;
+}
+
+function applyQuickInput(){
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const travelerNo=document.getElementById('q-traveler').value;
+  const date=document.getElementById('q-date').value;
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  const days=parseInt(document.getElementById('q-days').value)||1;
+  const nights=parseInt(document.getElementById('q-nights').value)||0;
+  const overseas=document.getElementById('q-overseas').value;
+  const taxi=parseInt(document.getElementById('q-taxi').value)||0;
+  const hotelActual=parseInt(document.getElementById('q-hotel-actual').value)||0;
+  const parking=parseInt(document.getElementById('q-parking').value)||0;
+
+  if(!mitsumori){showMsg('q-msg','見積番号を入力してください','err');return;}
+  if(!travelerNo){showMsg('q-msg','旅行者を選択してください','err');return;}
+  if(!date){showMsg('q-msg','出張日を入力してください','err');return;}
+
+  const cfg=getCfg();
+  const travelerObj=travelers.find(t=>t.no===travelerNo);
+
+  // pendingTripsに出張情報を追加
+  const tripData={
+    mitsumori,date,travelerNo,
+    travelerName:travelerObj?travelerObj.name:'',
+    days,nights,dest,purpose,overseas,
+    daily:days*cfg.daily,
+    hotel:nights>0?nights*cfg.hotel:0,
+    kaigai:overseas==='1'?cfg.kaigai:0
+  };
+  // 既存の同番号を置き換え
+  const existing=pendingTrips.findIndex(t=>t.mitsumori===mitsumori);
+  if(existing>=0)pendingTrips[existing]=tripData;
+  else pendingTrips.push(tripData);
+
+  // 精算リストから同番号を削除してから追加
+  expenses=expenses.filter(e=>String(e.mitsumori)!==String(mitsumori));
+
+  // バス自動追加チェック
+  const busStation=cfg.busStation;
+  const addedRoutes=[...qRoutes];
+
+  // バス自動追加
+  const needsBus=addedRoutes.some(r=>r.from.includes(busStation)||r.to.includes(busStation));
+  if(needsBus){
+    const hasGo=addedRoutes.some(r=>r.from.includes(busStation));
+    const hasBack=addedRoutes.some(r=>r.to.includes(busStation));
+    const both=hasGo&&hasBack;
+    const busHit=matchRoute('山手南',busStation)||matchRoute(busStation,'山手南');
+    const busFare=busHit?busHit.fare:190;
+    expenses.push({
+      id:Date.now()+Math.random(),mitsumori,date,
+      from:'山手南',to:busStation,
+      route:'京急バス',fare:busFare*(both?2:1),unitFare:busFare,
+      qty:both?2:1,trip:both?'往復':'片道',routeType:'transit',
+      _busAuto:true
+    });
+  }
+
+  // 交通費追加
+  addedRoutes.forEach(r=>{
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,...r});
+  });
+
+  // その他費用
+  if(taxi>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'タクシー代',fare:taxi,unitFare:taxi,qty:1,trip:'片道',routeType:'transit',_extra:true});
+  if(hotelActual>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'宿泊費（実費）',fare:hotelActual,unitFare:hotelActual,qty:1,trip:'片道',routeType:'transit',_extra:true});
+  else if(nights>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:`宿泊費(${nights}泊×${cfg.hotel.toLocaleString()}円)`,fare:nights*cfg.hotel,unitFare:cfg.hotel,qty:nights,trip:'片道',routeType:'transit',_extra:true});
+  if(parking>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'駐車料金',fare:parking,unitFare:parking,qty:1,trip:'片道',routeType:'transit',_extra:true});
+
+  // 日当
+  if(days>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:`日当(${days}日×${cfg.daily.toLocaleString()}円)`,fare:days*cfg.daily,unitFare:cfg.daily,qty:days,trip:'片道',routeType:'transit',_extra:true});
+
+  renderList();
+
+  // 次の見積番号を採番してリセット
+  const nextNo=autoIncrementMitsumori(mitsumori);
+  document.getElementById('q-mitsumori').value=nextNo;
+  document.getElementById('q-dest').value='';
+  document.getElementById('q-purpose').value='';
+  document.getElementById('q-days').value='1';
+  document.getElementById('q-nights').value='0';
+  document.getElementById('q-overseas').value='';
+  document.getElementById('q-taxi').value='';
+  document.getElementById('q-hotel-actual').value='';
+  document.getElementById('q-parking').value='';
+  qRoutes=[];
+  renderQRoutes();
+
+  showMsg('q-msg',`${mitsumori} を精算リストに追加しました`,'ok');
+  renderPrevCopy();
+}
+
+// お気に入り
+function exportFavorites(){
+  if(!favorites.length){alert('お気に入りが登録されていません');return;}
+  const json=JSON.stringify(favorites,null,2);
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download='お気に入り.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function importFavorites(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!Array.isArray(data))throw new Error('形式が正しくありません');
+      favorites=data;
+      localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+      renderFavorites();
+      showMsg('q-msg',`${favorites.length}件のお気に入りを読み込みました`,'ok');
+    }catch(err){
+      alert('読み込み失敗: '+err.message);
+    }
+    document.getElementById('fi-favorites').value='';
+  };
+  reader.readAsText(file);
+}
+
+function saveFavorite(){
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  if(!dest&&!qRoutes.length){showMsg('q-msg','出張先か交通費を入力してからお気に入りに登録してください','err');return;}
+  const label=dest||(qRoutes.map(r=>r.to).join('・'));
+  favorites.push({label,dest,purpose,routes:[...qRoutes]});
+  localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+  renderFavorites();
+  showMsg('q-msg','お気に入りに登録しました','ok');
+}
+
+function renderFavorites(){
+  const el=document.getElementById('favorite-list');
+  if(!el)return;
+  if(!favorites.length){
+    el.innerHTML='<span style="font-size:12px;color:var(--t3);">登録されたお気に入りがありません</span>';
+    return;
+  }
+  el.innerHTML=favorites.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="btn btn-sm" onclick="loadFavorite(${i})" style="background:var(--info-bg);border-color:var(--info-b);color:var(--info);">★ ${f.label}</button>
+      <button class="del-btn" onclick="deleteFavorite(${i})" style="font-size:11px;">✕</button>
+    </div>`).join('');
+}
+
+function loadFavorite(i){
+  const f=favorites[i];
+  if(!f)return;
+  document.getElementById('q-dest').value=f.dest||'';
+  document.getElementById('q-purpose').value=f.purpose||'';
+  qRoutes=[...f.routes];
+  renderQRoutes();
+  showMsg('q-msg',`「${f.label}」を読み込みました`,'ok');
+}
+
+function exportFavorites(){
+  if(!favorites.length){alert('お気に入りが登録されていません');return;}
+  const wb=XLSX.utils.book_new();
+  // お気に入りヘッダー情報シート
+  const favRows=[['ラベル','出張先','用件'],...favorites.map(f=>[f.label,f.dest||'',f.purpose||''])];
+  const wsFav=XLSX.utils.aoa_to_sheet(favRows);
+  XLSX.utils.book_append_sheet(wb,'favorites',wsFav);
+  // 交通費ルートシート
+  const routeRows=[['ラベル','出発地','目的地','交通手段','経路番号','片道運賃','往復']];
+  favorites.forEach(f=>{
+    (f.routes||[]).forEach(r=>{
+      routeRows.push([f.label,r.from,r.to,r.route,r.routeNo||'',r.unitFare,r.qty]);
+    });
+  });
+  const wsRoutes=XLSX.utils.aoa_to_sheet(routeRows);
+  XLSX.utils.book_append_sheet(wb,'routes',wsRoutes);
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'base64'});
+  const a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+wbout;
+  a.download='お気に入り.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function importFavorites(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+      const favWs=wb.Sheets['favorites'];
+      const routeWs=wb.Sheets['routes'];
+      if(!favWs){alert('お気に入りファイルの形式が正しくありません');return;}
+      const favRows=XLSX.utils.sheet_to_json(favWs,{header:1,raw:true}).slice(1);
+      const routeRows=routeWs?XLSX.utils.sheet_to_json(routeWs,{header:1,raw:true}).slice(1):[];
+      const imported=favRows.map(r=>({
+        label:String(r[0]||''),
+        dest:String(r[1]||''),
+        purpose:String(r[2]||''),
+        routes:routeRows.filter(rr=>String(rr[0]||'')=== String(r[0]||'')).map(rr=>({
+          from:String(rr[1]||''),
+          to:String(rr[2]||''),
+          route:String(rr[3]||''),
+          routeNo:rr[4]||null,
+          unitFare:parseInt(rr[5])||0,
+          fare:(parseInt(rr[5])||0)*(parseInt(rr[6])||1),
+          qty:parseInt(rr[6])||1,
+          trip:parseInt(rr[6])===2?'往復':'片道',
+          routeType:'transit'
+        }))
+      })).filter(f=>f.label);
+      if(!imported.length){alert('データが見つかりませんでした');return;}
+      if(confirm(`${imported.length}件のお気に入りをインポートします。現在のお気に入りに追加しますか？`)){
+        favorites=[...favorites,...imported];
+      }else{
+        favorites=imported;
+      }
+      localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+      renderFavorites();
+      document.getElementById('fi-favorites').value='';
+      showMsg('q-msg',`${imported.length}件インポートしました`,'ok');
+    }catch(err){
+      alert('読み込み失敗: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+function deleteFavorite(i){
+  favorites.splice(i,1);
+  localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+  renderFavorites();
+}
+
+// 前回コピー
+function renderPrevCopy(){
+  const card=document.getElementById('prev-copy-card');
+  const el=document.getElementById('prev-copy-list');
+  if(!card||!el)return;
+  // 精算リストから見積番号一覧を取得
+  const nos=[...new Set(expenses.map(e=>String(e.mitsumori)))];
+  if(!nos.length){card.style.display='none';return;}
+  card.style.display='block';
+  el.innerHTML=nos.map(no=>`
+    <button class="btn btn-sm" onclick="copyFromPrev('${no}')" style="background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok);">
+      ${no} をコピー
+    </button>`).join('');
+}
+
+function copyFromPrev(no){
+  // 出張情報をコピー
+  const trip=pendingTrips.find(t=>String(t.mitsumori)===no);
+  if(trip){
+    document.getElementById('q-dest').value=trip.dest||'';
+    document.getElementById('q-purpose').value=trip.purpose||'';
+    document.getElementById('q-days').value=trip.days||1;
+    document.getElementById('q-nights').value=trip.nights||0;
+    document.getElementById('q-overseas').value=trip.overseas||'';
+    const tSel=document.getElementById('q-traveler');
+    if(trip.travelerNo)tSel.value=trip.travelerNo;
+  }
+  // 交通費をコピー（バス自動追加・extraを除く）
+  const prevExpenses=expenses.filter(e=>String(e.mitsumori)===no&&!e._busAuto&&!e._extra&&e.routeType!=='gas');
+  qRoutes=prevExpenses.map(e=>({
+    from:e.from,to:e.to,route:e.route,routeNo:e.routeNo,
+    unitFare:e.unitFare,fare:e.unitFare*(e.qty||1),
+    qty:e.qty||1,trip:e.trip||'片道',routeType:e.routeType
+  }));
+  renderQRoutes();
+  showMsg('q-msg',`${no} の内容をコピーしました。日付を変更して追加してください。`,'ok');
+}
+
+
 function assignRouteNumbers(rows){
   const seen=new Map();
   rows.forEach(e=>{const k=`${e.from}|${e.to}|${e.route}|${e.routeType}`;if(!seen.has(k))seen.set(k,{...e});});
