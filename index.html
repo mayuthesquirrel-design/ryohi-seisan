@@ -139,6 +139,9 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
       <button class="nav-item" onclick="nav('settings')" id="nav-settings">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14"/></svg>設定
       </button>
+      <button class="nav-item" onclick="nav('guide')" id="nav-guide">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 7v4M8 5.5v.5"/></svg>使い方
+      </button>
     </div>
     <div class="sb-footer">経路マスタ照合で<br>金額を自動取得</div>
   </aside>
@@ -435,7 +438,10 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
 
     <!-- 精算リスト -->
     <div class="page" id="page-list">
-      <div class="page-title">精算リスト</div>
+      <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>精算リスト</span>
+        <button class="btn btn-sm" onclick="clearExpenses()" style="font-size:12px;">リストをクリア</button>
+      </div>
       <div style="margin-bottom:14px;">
         <button class="btn btn-primary" onclick="scrollToExport()">Accessエクスポートへ ↓</button>
       </div>
@@ -505,6 +511,84 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
       </div>
     </div>
 
+    <!-- 使い方 -->
+    <div class="page" id="page-guide">
+      <div class="page-title">使い方</div>
+
+      <div class="card">
+        <div class="card-title">基本的な流れ（Excel一括処理）</div>
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">経路マスタをアップロード</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">AccessからエクスポートしたExcel（経路マスタ.xlsx）またはCSVをアップロードします。一覧が表示されたら行をクリックして編集できます。変更後は「マスタをエクスポート」で保存しておくと次回も使えます。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">出張情報＋交通費Excelをアップロード</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">テンプレートExcelに記入してアップロードします。自動的に経路マスタと照合されます。</div>
+            <div class="alert a-info" style="margin-top:8px;font-size:12px;">
+              <strong>Excelの列構成（交通費シート）</strong><br>
+              A:見積番号　B:利用日　C:出発地　D:目的地　E:車利用(1=はい)　F:km　G:往復(空欄=往復/1=片道)　H:高速代　I:タクシー代　J:宿泊費(実費)　K:駐車料金
+            </div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">照合結果を確認・編集</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">行をクリックして出発地・目的地・利用日を修正できます。出発地・目的地を入力すると即座にマスタを検索して交通機関名と金額を表示します。「未登録 N件 ↓」をクリックすると未登録行にジャンプします。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">未登録経路の処理（ある場合）</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">「未登録経路リスト.csvをダウンロード」して金額と交通機関名を記入して戻すか、照合結果の行をクリックして直接金額を入力します。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num" style="background:var(--ok);">5</div>
+          <div class="step-body">
+            <div class="step-title">精算リストに追加してエクスポート</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">「精算リストに追加して確認する」→精算リストで内容を確認→「Accessエクスポート」で見積・見積明細・経路マスタ追加分をExcelでダウンロードします。AccessのExcelインポートで取り込んでください。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">自動処理のルール</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          <strong>バス自動追加：</strong>出発地または目的地に「京急久里浜」が含まれる行があると、山手南↔京急久里浜のバス代（190円）を自動追加します。往復の場合は数量2・¥380になります。<br>
+          <strong>往復判定：</strong>交通費ExcelのG列が空欄の場合は往復（数量2・金額×2）、1を入れると片道になります。<br>
+          <strong>高速代：</strong>車利用でkm入力時、経路マスタに一致する経路があれば高速代行も自動追加されます。<br>
+          <strong>宿泊費：</strong>J列に実費がある場合はその金額、空欄で宿泊日数≥1の場合は日数×宿泊代単価を自動追加します。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Accessへのインポート手順</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          1. Accessを開く<br>
+          2. 「外部データ」タブ→「Excel」をクリック<br>
+          3. ダウンロードしたExcelファイルを選択<br>
+          4. 「現在のデータベースのテーブルにレコードのコピーを追加する」を選択<br>
+          5. テーブル名を指定（見積_*.xlsx→見積テーブル、見積明細_*.xlsx→見積明細テーブル、経路マスタ追加分_*.xlsx→経路マスタ）<br>
+          6. 「先頭行をフィールド名として使う」にチェック→完了
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">経路番号の採番ルール</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          電車・バス：1〜499番台　／　高速代・ガソリン代：500番台　／　飛行機：700番台<br>
+          設定画面で各番台の現在の最大値を入力すると、そこから続きで採番されます。
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -548,6 +632,18 @@ function nav(n){
   }
 }
 
+function clearExpenses(){
+  if(!expenses.length)return;
+  if(!confirm('精算リストをすべて削除しますか？'))return;
+  expenses=[];
+  renderList();
+}
+
+function scrollToFirstUnregistered(){
+  const el=document.querySelector('.unreg-row');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
 function scrollToStep(id){
   const el=document.getElementById(id);
   if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -565,6 +661,12 @@ function clearMaster(){
 }
 
 function clearExcel(){
+  // 精算リストから今回のExcel由来のデータを削除
+  const nos=new Set(pendingTrips.map(t=>String(t.mitsumori)));
+  if(nos.size>0){
+    expenses=expenses.filter(e=>!nos.has(String(e.mitsumori)));
+    renderList();
+  }
   pendingRows=[];pendingTrips=[];unregisteredRoutes=[];filledRoutes=[];
   document.getElementById('excel-status').innerHTML='';
   document.getElementById('fi-excel').value='';
@@ -986,7 +1088,7 @@ function matchAndShow(){
 
   let html=`<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
     <span class="badge b-hit" style="font-size:12px;padding:4px 12px;">マスタ一致 ${hitCount}件</span>
-    ${unregisteredRoutes.length>0?`<span class="badge b-new" style="font-size:12px;padding:4px 12px;">未登録 ${unregisteredRoutes.length}件</span>`:''}
+    ${unregisteredRoutes.length>0?`<span class="badge b-new" style="font-size:12px;padding:4px 12px;cursor:pointer;" onclick="scrollToFirstUnregistered()">未登録 ${unregisteredRoutes.length}件 ↓</span>`:''}
     <span style="font-size:11px;color:var(--t3);">行をクリックで編集</span>
     <button class="btn btn-sm" onclick="addPendingRow()">＋ 行を追加</button>
   </div>`;
@@ -1021,10 +1123,10 @@ function renderMatchTable(){
         :`<input type="number" inputmode="numeric" value="${r._manualFare!=null?r._manualFare:defaultFare}" onchange="updatePendingRowAndMaster(${r._idx},parseInt(this.value)||0)" style="width:90px;padding:4px 6px;font-size:12px;border:.5px solid var(--${hit?'border':'warn-b'});border-radius:4px;background:#fff;" placeholder="金額"/>`;
       html+=`<tr style="background:var(--info-bg);" id="mrow${r._idx}">
         <td><input type="text" value="${r.mitsumori||''}" onchange="updatePendingRow(${r._idx},'mitsumori',this.value)" style="width:80px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
-        <td><input type="text" value="${r.from||''}" onchange="updatePendingRow(${r._idx},'from',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
-        <td><input type="text" value="${r.to||''}" onchange="updatePendingRow(${r._idx},'to',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.from||''}" oninput="updatePendingRow(${r._idx},'from',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.to||''}" oninput="updatePendingRow(${r._idx},'to',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
         <td><input type="date" value="${r.date||''}" onchange="updatePendingRow(${r._idx},'date',this.value)" style="padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
-        <td style="color:var(--t2);font-size:11px;">${r.isCar&&r.km>0?'ガソリン代計算':r.isCar&&r.highway>0?'高速代':'公共交通機関'}</td>
+        <td style="color:var(--t2);font-size:11px;">${r.isCar&&r.km>0?'ガソリン代計算':r.isCar&&r.highway>0?'高速代':'公共交通機関'}<br><span class="route-hit-hint" style="font-size:10px;">${hit?`✓ ${hit.route} ¥${hit.fare.toLocaleString()}`:(r.from&&r.to?'未登録':'')}</span></td>
         <td style="text-align:right;">${fareCell}</td>
         <td><button class="btn btn-sm btn-primary" onclick="confirmEdit(${r._idx})">確定</button></td>
       </tr>`;
@@ -1078,7 +1180,7 @@ function renderMatchTable(){
           ?(r._manualFare!=null?`<span class="badge b-hit">${hit.route} <span style="font-size:10px;opacity:.7;">金額修正済</span></span>`:`<span class="badge b-hit">${hit.route}</span>`)
           :'<span class="badge b-new">未登録</span>';
         const tripLabel=qty===2?'往復':'片道';
-        html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}">
+        html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}" ${!hit?'class="unreg-row"':''}>
           <td style="font-weight:500;">${r.mitsumori||'—'}</td>
           <td>${r.from||'—'}</td><td>${r.to||'—'}</td><td>${r.date||'—'}</td>
           <td>${badge} <span style="font-size:10px;color:var(--t3);">${tripLabel}</span></td>
@@ -1116,8 +1218,27 @@ function updatePendingRow(idx,field,val){
   const r=pendingRows[idx];
   if(!r)return;
   r[field]=val;
-  // from/toが変わったら未登録経路リストを再チェック
-  if(field==='from'||field==='to') recheckUnregistered();
+  // from/toが変わったらマスタ照合してリアルタイム反映
+  if(field==='from'||field==='to'){
+    recheckUnregistered();
+    if(r.from&&r.to){
+      const hit=matchRoute(r.from,r.to);
+      if(hit){
+        r.routeNo=hit.no;
+        // 編集中の金額欄にヒント表示
+        const fareInput=document.querySelector(`#mrow${idx} input[type="number"]`);
+        const hitSpan=document.querySelector(`#mrow${idx} .route-hit-hint`);
+        if(hitSpan){
+          hitSpan.textContent=`✓ ${hit.route} ¥${hit.fare.toLocaleString()}`;
+          hitSpan.style.color='var(--ok)';
+        }
+      }else{
+        r.routeNo=null;
+        const hitSpan=document.querySelector(`#mrow${idx} .route-hit-hint`);
+        if(hitSpan){hitSpan.textContent='未登録';hitSpan.style.color='var(--warn)';}
+      }
+    }
+  }
 }
 
 function confirmEdit(idx){
@@ -1262,7 +1383,10 @@ function showStep5(){
 function calcGas(km){return Math.round(km*getCfg().gasRate);}
 
 function applyToList(){
-  const rt=1; // デフォルト片道（Excelの往復は別途行で管理）
+  // 同じ見積番号の既存データを削除（重複防止）
+  const nos=new Set(pendingTrips.map(t=>String(t.mitsumori)));
+  if(nos.size>0) expenses=expenses.filter(e=>!nos.has(String(e.mitsumori)));
+  const rt=1;
   pendingRows.forEach(r=>{
     if(r._busAuto||r._extra){
       expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
