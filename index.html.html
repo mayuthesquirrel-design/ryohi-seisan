@@ -1,0 +1,2834 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅費精算アプリ</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f8f7f4;--surface:#fff;--border:rgba(0,0,0,.1);--border-h:rgba(0,0,0,.2);
+  --text:#1a1a18;--t2:#666660;--t3:#999993;
+  --info-bg:#e8f0fb;--info:#1a4fa0;--info-b:rgba(26,79,160,.2);
+  --warn-bg:#fef3e2;--warn:#92500a;--warn-b:rgba(146,80,10,.2);
+  --ok-bg:#e8f5ec;--ok:#1a6630;--ok-b:rgba(26,102,48,.2);
+  --err-bg:#fde8e8;--err:#991f1f;--err-b:rgba(153,31,31,.2);
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ','Hiragino Sans','Yu Gothic UI',sans-serif;min-height:100vh;}
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+.sidebar{background:var(--surface);border-right:.5px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.logo{padding:0 20px 20px;border-bottom:.5px solid var(--border);margin-bottom:14px;}
+.logo-title{font-size:15px;font-weight:500;letter-spacing:-.02em;}
+.logo-sub{font-size:11px;color:var(--t3);margin-top:2px;}
+.nav-sec{padding:0 12px;margin-bottom:4px;}
+.nav-sec-lbl{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:var(--rs);cursor:pointer;font-size:13px;color:var(--t2);transition:all .12s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.6;}
+.nav-item:hover{background:var(--bg);color:var(--text);}
+.nav-item.active{background:var(--text);color:#fff;}
+.nav-item.active svg{opacity:1;}
+.sb-footer{margin-top:auto;padding:14px 20px 0;border-top:.5px solid var(--border);font-size:11px;color:var(--t3);line-height:1.6;}
+.main{padding:32px 36px;max-width:900px;}
+.page{display:none;}.page.active{display:block;}
+.page-title{font-size:20px;font-weight:500;margin-bottom:24px;letter-spacing:-.02em;}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:14px;}
+.card-title{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.gswap{display:grid;grid-template-columns:1fr 32px 1fr;gap:8px;align-items:end;margin-bottom:12px;}
+.f{display:flex;flex-direction:column;gap:5px;}
+.f label{font-size:11px;color:var(--t2);font-weight:500;}
+.sub-lbl{font-size:10px;color:var(--t3);font-weight:400;margin-left:4px;}
+.f input,.f select{width:100%;padding:8px 10px;font-size:13px;border:.5px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);outline:none;font-family:inherit;transition:border-color .12s;}
+.f input:focus,.f select:focus{border-color:var(--border-h);box-shadow:0 0 0 3px rgba(0,0,0,.04);}
+.f input[readonly]{color:var(--t2);}
+.yw{position:relative;}.yw input{padding-left:20px;}
+.yp{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--t3);pointer-events:none;}
+.btn{padding:8px 16px;font-size:13px;font-weight:500;border:.5px solid var(--border);border-radius:var(--rs);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;transition:all .12s;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{background:var(--bg);border-color:var(--border-h);}
+.btn:active{transform:scale(.98);}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+.btn-full{width:100%;justify-content:center;}
+.btn-primary{background:var(--text);color:#fff;border-color:var(--text);}
+.btn-primary:hover{opacity:.85;background:var(--text);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.swap-btn{width:32px;height:32px;border-radius:50%;background:var(--bg);border:.5px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--t2);}
+.swap-btn:hover{border-color:var(--border-h);}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;}
+.b-gen{background:var(--bg);color:var(--t2);border:.5px solid var(--border);}
+.b-500{background:var(--warn-bg);color:var(--warn);}
+.b-700{background:var(--info-bg);color:var(--info);}
+.b-new{background:var(--ok-bg);color:var(--ok);}
+.b-hit{background:var(--info-bg);color:var(--info);}
+.alert{padding:9px 13px;border-radius:var(--rs);font-size:12px;margin-bottom:10px;line-height:1.5;}
+.a-info{background:var(--info-bg);color:var(--info);border:.5px solid var(--info-b);}
+.a-warn{background:var(--warn-bg);color:var(--warn);border:.5px solid var(--warn-b);}
+.a-ok{background:var(--ok-bg);color:var(--ok);border:.5px solid var(--ok-b);}
+.a-err{background:var(--err-bg);color:var(--err);border:.5px solid var(--err-b);}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{text-align:left;padding:6px 10px;font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--border);}
+.tbl td{padding:8px 10px;border-bottom:.5px solid var(--border);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--t3);font-size:13px;padding:2px 5px;}
+.del-btn:hover{color:var(--err);}
+.total-bar{display:flex;justify-content:flex-end;align-items:center;gap:16px;padding-top:10px;border-top:.5px solid var(--border);margin-top:4px;}
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0;}
+.divider-line{flex:1;height:.5px;background:var(--border);}
+.divider-txt{font-size:11px;color:var(--t3);white-space:nowrap;}
+.drop-zone{border:1px dashed var(--border-h);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;color:var(--t2);font-size:13px;transition:background .1s;margin-bottom:10px;}
+.drop-zone:hover,.drop-zone.over{background:var(--bg);}
+.step-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--text);color:#fff;font-size:11px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-num.done{background:var(--ok);}
+.step-num.wait{background:var(--border);color:var(--t3);}
+.step-body{flex:1;}
+.step-title{font-size:13px;font-weight:500;margin-bottom:6px;}
+.export-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.ebtn{padding:10px 12px;font-size:12px;font-weight:500;border:.5px solid var(--border);border-radius:var(--rs);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;text-align:left;}
+.ebtn:hover{background:var(--bg);}
+.ebtn .tn{font-size:10px;color:var(--t3);display:block;margin-top:3px;font-weight:400;}
+.ebtn-all{grid-column:span 3;background:var(--text);color:#fff;border-color:var(--text);text-align:center;padding:11px;}
+.ebtn-all:hover{opacity:.85;background:var(--text);}
+.num-info{font-size:12px;color:var(--t2);line-height:1.8;}
+.num-info strong{color:var(--text);}
+.ttype-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.ttype-btn{padding:6px 14px;font-size:12px;font-weight:500;border:.5px solid var(--border);border-radius:20px;background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;transition:all .12s;}
+.ttype-btn:hover{background:var(--bg);}
+.ttype-btn.active{background:var(--text);color:#fff;border-color:var(--text);}
+.road-toggle{display:flex;border:.5px solid var(--border);border-radius:var(--rs);overflow:hidden;width:fit-content;margin-bottom:14px;}
+.road-toggle button{padding:6px 18px;font-size:12px;font-weight:500;border:none;background:transparent;color:var(--t2);cursor:pointer;font-family:inherit;}
+.road-toggle button.active{background:var(--text);color:#fff;}
+.road-toggle button:first-child{border-right:.5px solid var(--border);}
+.calc-box{background:var(--bg);border-radius:var(--rs);padding:8px 12px;font-size:12px;color:var(--t2);margin-bottom:12px;min-height:32px;line-height:1.6;}
+.calc-box strong{color:var(--text);}
+.result-card{border:.5px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;}
+.add-btn{margin-top:8px;padding:5px 12px;font-size:11px;font-weight:500;border:.5px solid var(--border);border-radius:var(--rs);background:transparent;color:var(--text);cursor:pointer;font-family:inherit;}
+.add-btn:hover{background:var(--bg);}
+.add-btn.done{color:var(--ok);border-color:var(--ok-b);}
+.grp-header{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;padding:10px 0 6px;border-top:.5px solid var(--border);margin-top:4px;}
+.traveler-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.traveler-row input{flex:1;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">旅費精算</div>
+      <div class="logo-sub">Access連携</div>
+    </div>
+    <div class="nav-sec">
+      <div class="nav-sec-lbl">メイン</div>
+      <button class="nav-item active" onclick="nav('bulk')" id="nav-bulk">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>Excel一括処理
+      </button>
+      <button class="nav-item" onclick="nav('quick')" id="nav-quick">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1.5 4.5H14l-3.5 2.5 1.5 4.5L8 11l-4 2.5 1.5-4.5L2 6.5h4.5z"/></svg>クイック入力
+      </button>
+      <button class="nav-item" onclick="nav('single')" id="nav-single">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5V8l2 2"/></svg>1件手動入力
+      </button>
+      <button class="nav-item" onclick="nav('list')" id="nav-list">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>精算リスト
+      </button>
+    </div>
+    <div class="nav-sec" style="margin-top:8px;">
+      <div class="nav-sec-lbl">管理</div>
+      <button class="nav-item" onclick="nav('settings')" id="nav-settings">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14"/></svg>設定
+      </button>
+      <button class="nav-item" onclick="nav('guide')" id="nav-guide">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 7v4M8 5.5v.5"/></svg>使い方
+      </button>
+    </div>
+    <div class="sb-footer">経路マスタ照合で<br>金額を自動取得</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Excel一括処理（メイン画面） -->
+    <div class="page active" id="page-bulk">
+      <div class="page-title">Excel一括処理</div>
+
+      <!-- ジャンプバー -->
+      <div id="jump-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--rs);position:sticky;top:0;z-index:10;">
+        <button class="btn btn-sm" onclick="scrollToStep('step1-card')">① 経路マスタ</button>
+        <button class="btn btn-sm" onclick="scrollToStep('step2-card')">② 交通費Excel</button>
+        <button class="btn btn-sm" onclick="scrollToStep('step3-card')">③ 照合結果</button>
+        <button class="btn btn-sm" onclick="scrollToStep('step4-card')">④ 未登録経路</button>
+        <button class="btn btn-sm btn-primary" onclick="scrollToStep('step5-card')">⑤ 精算リストに追加</button>
+      </div>
+
+      <!-- Step 1: 経路マスタCSV -->
+      <div class="card" id="step1-card">
+        <div class="step-row">
+          <div class="step-num" id="step1-num">1</div>
+          <div class="step-body">
+            <div class="step-title" style="display:flex;align-items:center;justify-content:space-between;">
+              <span>経路マスタCSVをアップロード <span style="font-size:11px;color:var(--t3);">（Accessからエクスポートしたもの）</span></span>
+              <button class="btn btn-sm" onclick="clearMaster()" style="flex-shrink:0;">クリア</button>
+            </div>
+            <div class="drop-zone" id="dz-master" onclick="document.getElementById('fi-master').click()"
+              ondragover="event.preventDefault();this.classList.add('over')"
+              ondragleave="this.classList.remove('over')"
+              ondrop="dropMaster(event)">
+              <div style="font-size:20px;margin-bottom:4px;">📋</div>
+              <div style="font-weight:500;margin-bottom:2px;">クリックまたはドラッグ＆ドロップ</div>
+              <div style="font-size:11px;color:var(--t3);">経路マスタ.xlsx または .csv</div>
+            </div>
+            <input type="file" id="fi-master" accept=".xlsx,.xls,.csv" style="display:none" onchange="loadMaster(this.files[0])"/>
+            <div id="master-status"></div>
+            <div id="master-list" style="display:none;margin-top:10px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="font-size:12px;font-weight:500;color:var(--t2);">読み込んだ経路マスタ</div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <input type="text" id="master-search" placeholder="経路番号・出発地・目的地で絞り込み" oninput="filterMaster()" style="padding:5px 10px;font-size:12px;border:.5px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);outline:none;width:220px;"/>
+                  <button class="btn btn-sm" onclick="exportMaster()">マスタをエクスポート ↓</button>
+                  <button class="btn btn-sm" onclick="toggleMasterList()">閉じる</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;max-height:320px;overflow-y:auto;border:.5px solid var(--border);border-radius:var(--rs);">
+                <table class="tbl" id="master-table">
+                  <thead style="position:sticky;top:0;background:var(--surface);">
+                    <tr><th>経路番号</th><th>出発地</th><th>目的地</th><th>目的地ふりがな</th><th>利用交通機関</th><th style="text-align:right;">交通費</th><th style="color:var(--t3);font-weight:400;">行をクリックで編集</th></tr>
+                  </thead>
+                  <tbody id="master-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: 交通費Excel -->
+      <div class="card" id="step2-card">
+        <div class="step-row">
+          <div class="step-num wait" id="step2-num">2</div>
+          <div class="step-body">
+            <div class="step-title" style="display:flex;align-items:center;justify-content:space-between;">
+              <span>出張情報＋交通費 Excelをアップロード</span>
+              <button class="btn btn-sm" onclick="clearExcel()" style="flex-shrink:0;">クリア</button>
+            </div>
+            <div class="drop-zone" id="dz-excel" onclick="document.getElementById('fi-excel').click()"
+              ondragover="event.preventDefault();this.classList.add('over')"
+              ondragleave="this.classList.remove('over')"
+              ondrop="dropExcel(event)">
+              <div style="font-size:20px;margin-bottom:4px;">📂</div>
+              <div style="font-weight:500;margin-bottom:2px;">クリックまたはドラッグ＆ドロップ</div>
+              <div style="font-size:11px;color:var(--t3);">旅費精算テンプレート.xlsx</div>
+            </div>
+            <input type="file" id="fi-excel" accept=".xlsx,.xls" style="display:none" onchange="loadExcel(this.files[0])"/>
+            <div id="excel-status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: 照合結果 -->
+      <div id="step3-card" style="display:none;">
+        <div class="card">
+          <div class="step-row">
+            <div class="step-num done" id="step3-num">3</div>
+            <div class="step-body">
+              <div class="step-title">照合結果</div>
+              <div id="match-result"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: 未登録経路への金額入力 -->
+      <div id="step4-card" style="display:none;">
+        <div class="card" style="border-color:var(--warn-b);">
+          <div class="step-row">
+            <div class="step-num" style="background:var(--warn);">4</div>
+            <div class="step-body">
+              <div class="step-title">未登録経路に金額を入力してください</div>
+              <div class="alert a-warn">以下の経路が経路マスタに見つかりませんでした。Excelをダウンロードして金額と交通機関名を記入し、戻してください。</div>
+              <button class="btn" onclick="downloadUnregistered()" style="margin-bottom:12px;">未登録経路リスト.csv をダウンロード ↓</button>
+              <div class="divider"><div class="divider-line"></div><div class="divider-txt">記入済みファイルをここに戻す</div><div class="divider-line"></div></div>
+              <div class="drop-zone" id="dz-unreg" onclick="document.getElementById('fi-unreg').click()"
+                ondragover="event.preventDefault();this.classList.add('over')"
+                ondragleave="this.classList.remove('over')"
+                ondrop="dropUnreg(event)">
+                <div style="font-size:20px;margin-bottom:4px;">📥</div>
+                <div style="font-weight:500;">記入済みファイルをアップロード</div>
+              </div>
+              <input type="file" id="fi-unreg" accept=".xlsx,.xls" style="display:none" onchange="loadUnreg(this.files[0])"/>
+              <div id="unreg-status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: 精算リストへ追加 -->
+      <div id="step5-card" style="display:none;">
+        <div class="card" style="border-color:var(--ok-b);">
+          <div class="step-row">
+            <div class="step-num done">5</div>
+            <div class="step-body">
+              <div class="step-title">精算リストに追加</div>
+              <div id="ready-summary" style="margin-bottom:12px;"></div>
+              <button class="btn btn-primary" onclick="applyToList()">精算リストに追加して確認する →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- クイック入力 -->
+    <div class="page" id="page-quick">
+      <div class="page-title">クイック入力</div>
+
+      <!-- 前回コピー -->
+      <div class="card" id="quick-copy-card">
+        <div class="card-title">前回の精算をコピー</div>
+        <div id="quick-copy-list">
+          <div style="font-size:13px;color:var(--t3);">精算リストにデータがありません</div>
+        </div>
+      </div>
+
+      <!-- お気に入りルート -->
+      <div class="card">
+        <div class="card-title">お気に入りルート <span style="font-size:10px;font-weight:400;color:var(--t3);">よく使うルートをワンクリックで追加</span></div>
+        <div id="fav-route-list" style="margin-bottom:10px;"></div>
+        <button class="btn btn-sm" onclick="showAddFavForm()">＋ お気に入りを追加</button>
+        <div id="add-fav-form" style="display:none;margin-top:12px;padding:12px;background:var(--bg);border-radius:var(--rs);">
+          <div class="g2" style="margin-bottom:8px;">
+            <div class="f">
+              <label>出発地</label>
+              <input type="text" id="fav-from" list="fav-from-list" placeholder="例：京急久里浜"/>
+              <datalist id="fav-from-list"></datalist>
+            </div>
+            <div class="f">
+              <label>目的地</label>
+              <input type="text" id="fav-to" list="fav-to-list" placeholder="例：豊洲"/>
+              <datalist id="fav-to-list"></datalist>
+            </div>
+          </div>
+          <div class="g2" style="margin-bottom:8px;">
+            <div class="f">
+              <label>名前（任意）</label>
+              <input type="text" id="fav-name" placeholder="例：豊洲打合"/>
+            </div>
+            <div class="f">
+              <label>往復</label>
+              <select id="fav-rt">
+                <option value="2">往復</option>
+                <option value="1">片道</option>
+              </select>
+            </div>
+          </div>
+          <div id="fav-preview" class="calc-box" style="margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="saveFavRoute()">登録</button>
+            <button class="btn btn-sm" onclick="document.getElementById('add-fav-form').style.display='none'">キャンセル</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 今日の出張を追加 -->
+      <div class="card">
+        <div class="card-title">今日の出張を追加</div>
+        <div class="g3" style="margin-bottom:12px;">
+          <div class="f">
+            <label>見積番号</label>
+            <input type="text" id="q-mitsumori" placeholder="例：202601"/>
+          </div>
+          <div class="f">
+            <label>旅行者</label>
+            <select id="q-traveler" onchange="onQTravelerChange()"><option value="">選択</option></select>
+          </div>
+          <div class="f">
+            <label>利用日</label>
+            <input type="date" id="q-date"/>
+          </div>
+        </div>
+        <div class="g2" style="margin-bottom:12px;">
+          <div class="f">
+            <label>出張先</label>
+            <input type="text" id="q-dest" placeholder="例：豊洲"/>
+          </div>
+          <div class="f">
+            <label>用件</label>
+            <input type="text" id="q-purpose" placeholder="例：打合"/>
+          </div>
+        </div>
+
+        <div class="divider"><div class="divider-line"></div><div class="divider-txt">交通費を追加</div><div class="divider-line"></div></div>
+
+        <div class="gswap" style="margin-bottom:8px;">
+          <div class="f">
+            <label>出発地</label>
+            <input type="text" id="q-from" list="q-from-list" placeholder="経路マスタから選択" oninput="updateQFavPreview()"/>
+            <datalist id="q-from-list"></datalist>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+            <button class="swap-btn" onclick="sw('q-from','q-to');updateQFavPreview()">⇄</button>
+          </div>
+          <div class="f">
+            <label>目的地</label>
+            <input type="text" id="q-to" list="q-to-list" placeholder="経路マスタから選択" oninput="updateQFavPreview()"/>
+            <datalist id="q-to-list"></datalist>
+          </div>
+        </div>
+        <div id="q-route-preview" class="calc-box" style="margin-bottom:10px;"></div>
+        <div class="g2" style="margin-bottom:0;">
+          <div class="f">
+            <label>往復</label>
+            <select id="q-rt">
+              <option value="2">往復</option>
+              <option value="1">片道</option>
+            </select>
+          </div>
+          <div class="f">
+            <label style="visibility:hidden;">x</label>
+            <button class="btn btn-primary btn-full" onclick="addQuickExpense()">精算リストに追加</button>
+          </div>
+        </div>
+        <div id="q-msg"></div>
+      </div>
+    </div>
+
+    <!-- クイック入力 -->
+    <div class="page" id="page-quick">
+      <div class="page-title">クイック入力</div>
+
+      <!-- お気に入りから呼び出し -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>お気に入り</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="exportFavorites()">エクスポート ↓</button>
+            <button class="btn btn-sm" onclick="document.getElementById('fi-favorites').click()">インポート ↑</button>
+            <input type="file" id="fi-favorites" accept=".json" style="display:none" onchange="importFavorites(this.files[0])"/>
+            <button class="btn btn-sm" onclick="saveFavorite()">現在の内容を登録 ★</button>
+          </div>
+        </div>
+        <div id="favorite-list" style="display:flex;flex-wrap:wrap;gap:6px;min-height:32px;">
+          <span style="font-size:12px;color:var(--t3);">登録されたお気に入りがありません</span>
+        </div>
+      </div>
+
+      <!-- 前回コピー -->
+      <div class="card" id="prev-copy-card" style="display:none;">
+        <div class="card-title">前回の精算からコピー</div>
+        <div id="prev-copy-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
+      <!-- 出張情報入力 -->
+      <div class="card">
+        <div class="card-title">出張情報</div>
+        <div class="g3">
+          <div class="f"><label>見積番号</label><input type="text" id="q-mitsumori" placeholder="例：202601"/></div>
+          <div class="f"><label>旅行者</label>
+            <select id="q-traveler" onchange="onQTravelerChange()">
+              <option value="">選択</option>
+            </select>
+          </div>
+          <div class="f"><label>出張日</label><input type="date" id="q-date" onchange="syncQDate()"/></div>
+        </div>
+        <div class="g3">
+          <div class="f"><label>出張先</label><input type="text" id="q-dest" placeholder="例：横浜"/></div>
+          <div class="f"><label>用件</label><input type="text" id="q-purpose" placeholder="例：打合"/></div>
+          <div class="f"><label>出張日数</label><input type="number" inputmode="numeric" id="q-days" value="1" min="1"/></div>
+        </div>
+        <div class="g2">
+          <div class="f"><label>宿泊日数</label><input type="number" inputmode="numeric" id="q-nights" value="0" min="0"/></div>
+          <div class="f"><label>海外出張</label>
+            <select id="q-overseas"><option value="">なし</option><option value="1">あり</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 交通費入力 -->
+      <div class="card">
+        <div class="card-title">交通費</div>
+        <div id="q-routes-list"></div>
+        <div style="margin-top:10px;">
+          <div class="gswap" style="margin-bottom:8px;">
+            <div class="f">
+              <label>出発地</label>
+              <input type="text" id="q-from" list="q-from-list" placeholder="例：京急久里浜" oninput="qLookupRoute()"/>
+              <datalist id="q-from-list"></datalist>
+            </div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+              <button class="swap-btn" onclick="sw('q-from','q-to');qLookupRoute()">⇄</button>
+            </div>
+            <div class="f">
+              <label>目的地</label>
+              <input type="text" id="q-to" list="q-to-list" placeholder="例：豊洲" oninput="qLookupRoute()"/>
+              <datalist id="q-to-list"></datalist>
+            </div>
+          </div>
+          <div id="q-route-preview" class="calc-box" style="margin-bottom:8px;display:none;"></div>
+          <div class="g3">
+            <div class="f"><label>往復</label>
+              <select id="q-rt"><option value="2">往復</option><option value="1">片道</option></select>
+            </div>
+            <div class="f"><label>金額（手動上書き）</label>
+              <div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-fare" placeholder="自動取得" min="0" step="10"/></div>
+            </div>
+            <div class="f"><label style="visibility:hidden;">x</label>
+              <button class="btn btn-primary btn-full" onclick="addQRoute()">追加 ＋</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- その他費用 -->
+        <div class="divider"><div class="divider-line"></div><div class="divider-txt">その他費用</div><div class="divider-line"></div></div>
+        <div class="g3">
+          <div class="f"><label>タクシー代</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-taxi" placeholder="0" min="0"/></div></div>
+          <div class="f"><label>宿泊費（実費）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-hotel-actual" placeholder="0" min="0"/></div></div>
+          <div class="f"><label>駐車料金</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="q-parking" placeholder="0" min="0"/></div></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" style="margin-bottom:24px;" onclick="applyQuickInput()">精算リストに追加 →</button>
+      <div id="q-msg"></div>
+    </div>
+
+    <!-- 1件手動入力 -->
+    <div class="page" id="page-single">
+      <div class="page-title">1件手動入力</div>
+
+      <!-- 出張情報（簡易） -->
+      <div class="card">
+        <div class="card-title">出張情報（現在の設定）</div>
+        <div class="g3">
+          <div class="f"><label>見積番号</label><input type="text" id="t-mitsumori" placeholder="例：202601"/></div>
+          <div class="f"><label>旅行者番号</label><select id="t-traveler-no" onchange="onTravelerChange()"><option value="">選択</option></select></div>
+          <div class="f"><label>旅行者名<span class="sub-lbl">自動</span></label><input type="text" id="t-traveler" readonly/></div>
+        </div>
+      </div>
+
+      <!-- 交通手段 -->
+      <div class="card">
+        <div class="card-title">交通手段</div>
+        <div class="ttype-row">
+          <button class="ttype-btn active" onclick="setRT('transit')" id="rt-transit">電車・バス <span class="badge b-gen">1〜499</span></button>
+          <button class="ttype-btn" onclick="setRT('highway')" id="rt-highway">高速代 <span class="badge b-500">500番台</span></button>
+          <button class="ttype-btn" onclick="setRT('gas')" id="rt-gas">ガソリン代 <span class="badge b-500">500番台</span></button>
+          <button class="ttype-btn" onclick="setRT('flight')" id="rt-flight">飛行機 <span class="badge b-700">700番台</span></button>
+        </div>
+
+        <!-- 電車・バス -->
+        <div id="form-transit">
+          <div class="gswap">
+            <div class="f"><label>出発地</label><input type="text" id="s-from" placeholder="例：京急久里浜"/></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="swap-btn" onclick="sw('s-from','s-to')">⇄</button></div>
+            <div class="f"><label>目的地</label><input type="text" id="s-to" placeholder="例：渋谷"/></div>
+          </div>
+          <div class="g3">
+            <div class="f"><label>利用日</label><input type="date" id="s-date" onchange="syncDates(this.value)"/></div>
+            <div class="f"><label>利用交通機関</label><input type="text" id="s-route" placeholder="例：京急線"/></div>
+            <div class="f"><label>往復</label><select id="s-rt"><option value="1">片道</option><option value="2">往復</option></select></div>
+          </div>
+          <div class="g2" style="margin-bottom:0;">
+            <div class="f"><label>片道運賃（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="s-fare" placeholder="例：570" min="0" step="10"/></div></div>
+            <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addTransit()">追加</button></div>
+          </div>
+          <div id="s-msg"></div>
+        </div>
+
+        <!-- 高速代 -->
+        <div id="form-highway" style="display:none;">
+          <div class="gswap">
+            <div class="f"><label>乗ったIC</label><input type="text" id="h-from" placeholder="例：海老名IC"/></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="swap-btn" onclick="sw('h-from','h-to')">⇄</button></div>
+            <div class="f"><label>降りたIC</label><input type="text" id="h-to" placeholder="例：横浜IC"/></div>
+          </div>
+          <div class="g3">
+            <div class="f"><label>利用日</label><input type="date" id="h-date" onchange="syncDates(this.value)"/></div>
+            <div class="f"><label>高速道路名</label><input type="text" id="h-road" placeholder="例：東名高速"/></div>
+            <div class="f"><label>往復</label><select id="h-rt"><option value="1">片道</option><option value="2">往復</option></select></div>
+          </div>
+          <div class="g2" style="margin-bottom:0;">
+            <div class="f"><label>片道料金（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="h-fare" placeholder="760" min="0" step="10" oninput="previewH()"/></div></div>
+            <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addHighway()">追加</button></div>
+          </div>
+          <div id="h-preview" class="calc-box" style="margin-top:8px;display:none;"></div>
+          <div id="h-msg"></div>
+        </div>
+
+        <!-- ガソリン代 -->
+        <div id="form-gas" style="display:none;">
+          <div class="road-toggle">
+            <button id="tog-hw" class="active" onclick="setGasMode('hw')">🛣 高速使用</button>
+            <button id="tog-gen" onclick="setGasMode('gen')">🚗 一般道</button>
+          </div>
+          <div id="gas-hw">
+            <div class="gswap">
+              <div class="f"><label>出発IC</label><input type="text" id="g-from" placeholder="例：厚木IC"/></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="swap-btn" onclick="sw('g-from','g-to')">⇄</button></div>
+              <div class="f"><label>到着IC</label><input type="text" id="g-to" placeholder="例：沼津IC"/></div>
+            </div>
+            <div class="g2">
+              <div class="f"><label>利用日</label><input type="date" id="g-date" onchange="syncDates(this.value)"/></div>
+              <div class="f"><label>往復</label><select id="g-rt"><option value="1">片道</option><option value="2">往復</option></select></div>
+            </div>
+            <div class="f" style="margin-bottom:10px;">
+              <label>距離（km）<span class="sub-lbl">手動入力</span></label>
+              <input type="number" inputmode="numeric" id="g-km" placeholder="例：52.3" min="0.1" step="0.1" oninput="previewGas('hw')"/>
+            </div>
+            <div id="g-preview" class="calc-box">距離を入力してください（15円/km・小数点以下四捨五入）</div>
+            <div class="g2" style="margin-bottom:0;"><div style="grid-column:2;"><button class="btn btn-primary btn-full" onclick="addGas('hw')">追加</button></div></div>
+          </div>
+          <div id="gas-gen" style="display:none;">
+            <div class="gswap">
+              <div class="f"><label>出発地</label><input type="text" id="gg-from" placeholder="例：会社"/></div>
+              <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="swap-btn" onclick="sw('gg-from','gg-to')">⇄</button></div>
+              <div class="f"><label>目的地</label><input type="text" id="gg-to" placeholder="例：訪問先"/></div>
+            </div>
+            <div class="g2">
+              <div class="f"><label>利用日</label><input type="date" id="gg-date" onchange="syncDates(this.value)"/></div>
+              <div class="f"><label>往復</label><select id="gg-rt"><option value="1">片道</option><option value="2">往復</option></select></div>
+            </div>
+            <div class="f" style="margin-bottom:10px;">
+              <label>距離（km）</label>
+              <input type="number" inputmode="numeric" id="gg-km" placeholder="例：18.5" min="0.1" step="0.1" oninput="previewGas('gen')"/>
+            </div>
+            <div id="gg-preview" class="calc-box">距離を入力してください（15円/km・小数点以下四捨五入）</div>
+            <div class="g2" style="margin-bottom:0;"><div style="grid-column:2;"><button class="btn btn-primary btn-full" onclick="addGas('gen')">追加</button></div></div>
+          </div>
+          <div id="g-msg"></div>
+        </div>
+
+        <!-- 飛行機 -->
+        <div id="form-flight" style="display:none;">
+          <div class="gswap">
+            <div class="f"><label>出発空港</label><input type="text" id="fl-from" placeholder="例：羽田空港"/></div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="swap-btn" onclick="sw('fl-from','fl-to')">⇄</button></div>
+            <div class="f"><label>到着空港</label><input type="text" id="fl-to" placeholder="例：伊丹空港"/></div>
+          </div>
+          <div class="g3">
+            <div class="f"><label>利用日</label><input type="date" id="fl-date" onchange="syncDates(this.value)"/></div>
+            <div class="f"><label>航空会社・便名</label><input type="text" id="fl-airline" placeholder="例：ANA001"/></div>
+            <div class="f"><label>往復</label><select id="fl-rt"><option value="1">片道</option><option value="2">往復</option></select></div>
+          </div>
+          <div class="g2" style="margin-bottom:0;">
+            <div class="f"><label>片道料金（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="fl-fare" placeholder="15000" min="0" step="100"/></div></div>
+            <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addFlight()">追加</button></div>
+          </div>
+          <div id="fl-msg"></div>
+        </div>
+      </div>
+
+      <div class="divider"><div class="divider-line"></div><div class="divider-txt">その他費用</div><div class="divider-line"></div></div>
+
+      <div class="card">
+        <div class="card-title">宿泊費（実費）</div>
+        <div class="g3" style="margin-bottom:0;">
+          <div class="f"><label>利用日</label><input type="date" id="hotel-date"/></div>
+          <div class="f"><label>金額（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="hotel-fare" placeholder="9800" min="0" step="100"/></div></div>
+          <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addExtra('hotel')">追加</button></div>
+        </div>
+        <div id="hotel-msg"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">タクシー代</div>
+        <div class="g3" style="margin-bottom:0;">
+          <div class="f"><label>利用日</label><input type="date" id="taxi-date"/></div>
+          <div class="f"><label>金額（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="taxi-fare" placeholder="2500" min="0" step="10"/></div></div>
+          <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addExtra('taxi')">追加</button></div>
+        </div>
+        <div id="taxi-msg"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">駐車料金</div>
+        <div class="g3" style="margin-bottom:0;">
+          <div class="f"><label>利用日</label><input type="date" id="park-date"/></div>
+          <div class="f"><label>金額（円）</label><div class="yw"><span class="yp">¥</span><input type="number" inputmode="numeric" id="park-fare" placeholder="1200" min="0" step="100"/></div></div>
+          <div class="f"><label style="visibility:hidden;">x</label><button class="btn btn-primary btn-full" onclick="addExtra('park')">追加</button></div>
+        </div>
+        <div id="park-msg"></div>
+      </div>
+    </div>
+
+    <!-- 精算リスト -->
+    <div class="page" id="page-list">
+      <div class="page-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>精算リスト</span>
+        <button class="btn btn-sm" onclick="clearExpenses()" style="font-size:12px;">リストをクリア</button>
+      </div>
+      <div style="margin-bottom:14px;">
+        <button class="btn btn-primary" onclick="scrollToExport()">Accessエクスポートへ ↓</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--rs);position:sticky;top:0;z-index:10;">
+        <button class="btn btn-sm" onclick="document.getElementById('export-area').scrollIntoView({behavior:'smooth',block:'start'})">Accessエクスポートへ ↓</button>
+        <button class="btn btn-sm" onclick="exportAll()">3テーブルをまとめてエクスポート ↓</button>
+      </div>
+      <div class="card">
+        <div id="list-msg"></div>
+        <div id="expense-body"><div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">まだ交通費が追加されていません</div></div>
+        <div id="export-area" style="display:none;">
+          <div style="background:var(--bg);border-radius:var(--rs);padding:14px 16px;margin-top:14px;">
+            <div class="card-title" style="margin-bottom:10px;">Accessエクスポート</div>
+            <div id="num-alloc" class="num-info" style="margin-bottom:12px;"></div>
+            <div class="export-grid">
+              <button class="ebtn" onclick="exportCSV('mitsumori')">見積テーブル<span class="tn">旅行者・出張情報</span></button>
+              <button class="ebtn" onclick="exportCSV('meisai')">見積明細テーブル<span class="tn">利用日・区間・金額</span></button>
+              <button class="ebtn" onclick="exportCSV('route')">経路マスタ<span class="tn">新規経路のみ</span></button>
+              <button class="ebtn ebtn-all" onclick="exportAll()">3テーブルをまとめてZIPエクスポート ↓</button>
+            </div>
+            <div style="font-size:11px;color:var(--t3);margin-top:8px;">AccessのCSVインポート（外部データ→テキストファイル）で各テーブルに取り込んでください</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 設定 -->
+    <div class="page" id="page-settings">
+      <div class="page-title">設定</div>
+      <div class="card">
+        <div class="card-title">旅行者マスタ</div>
+        <div id="traveler-list"></div>
+        <button class="btn btn-sm" onclick="addTravelerRow()" style="margin-top:8px;">＋ 旅行者を追加</button>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-primary" onclick="saveTravelers()">保存</button>
+          <span id="traveler-save-msg" style="font-size:12px;color:var(--ok);"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">経路番号の採番設定（Accessの現在の最大値）</div>
+        <div class="alert a-info" style="margin-bottom:12px;">既存データがある場合、各番台の現在の最大値を入力してください。</div>
+        <div class="g3">
+          <div class="f"><label>1〜499番台 <span class="badge b-gen">電車・バス等</span></label><input type="number" inputmode="numeric" id="max-gen" value="0" min="0" max="499" oninput="updateNumPreview()"/></div>
+          <div class="f"><label>500番台 <span class="badge b-500">高速・ガソリン</span></label><input type="number" inputmode="numeric" id="max-500" value="500" min="500" max="599" oninput="updateNumPreview()"/></div>
+          <div class="f"><label>700番台 <span class="badge b-700">飛行機</span></label><input type="number" inputmode="numeric" id="max-700" value="700" min="700" max="799" oninput="updateNumPreview()"/></div>
+        </div>
+        <div id="num-preview" class="num-info"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">出張情報デフォルト</div>
+        <div class="g3">
+          <div class="f"><label>日当単価（円/日）</label><input type="number" inputmode="numeric" id="cfg-daily" value="5000" min="0" step="100"/></div>
+          <div class="f"><label>宿泊代単価（円/泊）</label><input type="number" inputmode="numeric" id="cfg-hotel" value="12000" min="0" step="100"/></div>
+          <div class="f"><label>海外準備金（円）</label><input type="number" inputmode="numeric" id="cfg-kaigai" value="50000" min="0" step="1000"/></div>
+        </div>
+        <div class="g2">
+          <div class="f">
+            <label>ガソリン単価（円/km）</label>
+            <input type="number" inputmode="numeric" id="cfg-gas-rate" value="15" min="1" step="1"/>
+            <div style="font-size:11px;color:var(--t3);margin-top:3px;">例：15円/km → 10km = 150円</div>
+          </div>
+          <div class="f">
+            <label>バス自動追加（駅名）</label>
+            <input type="text" id="cfg-bus-station" value="京急久里浜" placeholder="例：京急久里浜"/>
+            <div style="font-size:11px;color:var(--t3);margin-top:3px;">この駅が出発地または目的地の場合、山手南↔この駅のバス代（190円）を自動追加します</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 使い方 -->
+    <div class="page" id="page-guide">
+      <div class="page-title">使い方</div>
+
+      <div class="card">
+        <div class="card-title">テンプレートダウンロード</div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:12px;line-height:1.8;">出張情報・交通費の入力用Excelテンプレートをダウンロードできます。</div>
+        <button class="btn btn-primary" onclick="downloadTemplate()">旅費精算テンプレート.xlsx をダウンロード ↓</button>
+      </div>
+
+      <div class="card">
+        <div class="step-row">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">経路マスタをアップロード</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">AccessからエクスポートしたExcel（経路マスタ.xlsx）またはCSVをアップロードします。一覧が表示されたら行をクリックして編集できます。変更後は「マスタをエクスポート」で保存しておくと次回も使えます。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">出張情報＋交通費Excelをアップロード</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">テンプレートExcelに記入してアップロードします。自動的に経路マスタと照合されます。</div>
+            <div class="alert a-info" style="margin-top:8px;font-size:12px;">
+              <strong>Excelの列構成（交通費シート）</strong><br>
+              A:見積番号　B:利用日　C:出発地　D:目的地　E:車利用(1=はい)　F:km　G:往復(空欄=往復/1=片道)　H:高速代　I:タクシー代　J:宿泊費(実費)　K:駐車料金
+            </div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">照合結果を確認・編集</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">行をクリックして出発地・目的地・利用日を修正できます。出発地・目的地を入力すると即座にマスタを検索して交通機関名と金額を表示します。「未登録 N件 ↓」をクリックすると未登録行にジャンプします。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">未登録経路の処理（ある場合）</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">「未登録経路リスト.csvをダウンロード」して金額と交通機関名を記入して戻すか、照合結果の行をクリックして直接金額を入力します。</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <div class="step-num" style="background:var(--ok);">5</div>
+          <div class="step-body">
+            <div class="step-title">精算リストに追加してエクスポート</div>
+            <div style="font-size:13px;color:var(--t2);line-height:1.8;">「精算リストに追加して確認する」→精算リストで内容を確認→「Accessエクスポート」で見積・見積明細・経路マスタ追加分をExcelでダウンロードします。AccessのExcelインポートで取り込んでください。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">自動処理のルール</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          <strong>バス自動追加：</strong>出発地または目的地に「京急久里浜」が含まれる行があると、山手南↔京急久里浜のバス代（190円）を自動追加します。往復の場合は数量2・¥380になります。<br>
+          <strong>往復判定：</strong>交通費ExcelのG列が空欄の場合は往復（数量2・金額×2）、1を入れると片道になります。<br>
+          <strong>高速代：</strong>車利用でkm入力時、経路マスタに一致する経路があれば高速代行も自動追加されます。<br>
+          <strong>宿泊費：</strong>J列に実費がある場合はその金額、空欄で宿泊日数≥1の場合は日数×宿泊代単価を自動追加します。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Accessへのインポート手順</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          1. Accessを開く<br>
+          2. 「外部データ」タブ→「Excel」をクリック<br>
+          3. ダウンロードしたExcelファイルを選択<br>
+          4. 「現在のデータベースのテーブルにレコードのコピーを追加する」を選択<br>
+          5. テーブル名を指定（見積_*.xlsx→見積テーブル、見積明細_*.xlsx→見積明細テーブル、経路マスタ追加分_*.xlsx→経路マスタ）<br>
+          6. 「先頭行をフィールド名として使う」にチェック→完了
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">経路番号の採番ルール</div>
+        <div style="font-size:13px;color:var(--t2);line-height:2;">
+          電車・バス：1〜499番台　／　高速代・ガソリン代：500番台　／　飛行機：700番台<br>
+          設定画面で各番台の現在の最大値を入力すると、そこから続きで採番されます。
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// 状態管理
+// ============================================================
+let expenses = [];
+let travelers = [{no:'1',name:'安枝　信次（GDEC）'},{no:'2',name:'安枝　信次（東販）'}];
+let masterRoutes = []; // 経路マスタ（CSVから読み込み）
+let pendingRows = [];  // 照合済み交通費行
+let pendingTrips = []; // 出張情報
+let unregisteredRoutes = []; // 未登録経路
+let filledRoutes = [];  // 記入済み未登録経路
+
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+
+// 初期化
+['s-date','h-date','g-date','gg-date','fl-date','hotel-date','taxi-date','park-date'].forEach(id=>{
+  const el=document.getElementById(id);if(el)el.value=todayStr;
+});
+updateNumPreview();
+renderTravelerSelect();
+renderTravelerSettings();
+
+// ============================================================
+// クイック入力
+// ============================================================
+let favRoutes = JSON.parse(localStorage.getItem('favRoutes')||'[]');
+
+function initQuickPage(){
+  // 見積番号自動採番
+  const qm=document.getElementById('q-mitsumori');
+  if(qm&&!qm.value) qm.value=nextMitsumori();
+  // 旅行者セレクト
+  const sel=document.getElementById('q-traveler');
+  if(sel){
+    sel.innerHTML='<option value="">選択</option>';
+    travelers.forEach(t=>{
+      const opt=document.createElement('option');
+      opt.value=t.no;opt.textContent=`${t.no}：${t.name}`;
+      sel.appendChild(opt);
+    });
+  }
+  // 日付
+  const qd=document.getElementById('q-date');
+  if(qd&&!qd.value) qd.value=todayStr;
+  // datalistを経路マスタで更新
+  updateQDatalist();
+  // お気に入り描画
+  renderFavRoutes();
+  // 前回コピー描画
+  renderCopyList();
+}
+
+function onQTravelerChange(){}
+
+function updateQDatalist(){
+  const froms=[...new Set(masterRoutes.map(r=>r.from))].sort();
+  const tos=[...new Set(masterRoutes.map(r=>r.to))].sort();
+  ['q-from-list','fav-from-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(dl){dl.innerHTML=froms.map(v=>`<option value="${v}">`).join('');}
+  });
+  ['q-to-list','fav-to-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(dl){dl.innerHTML=tos.map(v=>`<option value="${v}">`).join('');}
+  });
+}
+
+function updateQFavPreview(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const el=document.getElementById('q-route-preview');
+  if(!from||!to){el.textContent='出発地と目的地を入力してください';return;}
+  const hit=matchRoute(from,to);
+  if(hit){
+    el.innerHTML=`<strong>${hit.route}</strong>　片道 ¥${hit.fare.toLocaleString()}`;
+  }else{
+    el.innerHTML=`<span style="color:var(--warn);">経路マスタに未登録</span>`;
+  }
+}
+
+function addQuickExpense(){
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const travelerNo=document.getElementById('q-traveler').value;
+  const date=document.getElementById('q-date').value;
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const rt=parseInt(document.getElementById('q-rt').value);
+
+  if(!mitsumori){showMsg('q-msg','見積番号を入力してください','err');return;}
+  if(!from||!to){showMsg('q-msg','出発地と目的地を入力してください','err');return;}
+
+  // 出張情報をpendingTripsに追加（なければ）
+  if(!pendingTrips.find(t=>String(t.mitsumori)===mitsumori)){
+    const tno=travelerNo;
+    const tobj=travelers.find(t=>t.no===tno);
+    const cfg=getCfg();
+    pendingTrips.push({
+      mitsumori,date,travelerNo:tno,travelerName:tobj?tobj.name:'',
+      days:1,nights:0,dest,purpose,overseas:'',
+      daily:cfg.daily,hotel:0,kaigai:0
+    });
+  }
+
+  // バスの自動追加
+  const busStation=getCfg().busStation;
+  const busHit=matchRoute('山手南',busStation)||matchRoute(busStation,'山手南');
+  if(busHit&&(from.includes(busStation)||to.includes(busStation))){
+    const busFrom=from.includes(busStation)?'山手南':busStation;
+    const busto=from.includes(busStation)?busStation:'山手南';
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,
+      from:busFrom,to:busto,route:'京急バス',
+      fare:190*rt,unitFare:190,qty:rt,trip:rt===2?'往復':'片道',
+      routeType:'transit',routeNo:busHit.no});
+  }
+
+  // 交通費本体
+  const hit=matchRoute(from,to);
+  const fare=hit?hit.fare:0;
+  const route=hit?hit.route:`${from}→${to}`;
+  if(fare>0){
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,from,to,
+      route,fare:fare*rt,unitFare:fare,qty:rt,trip:rt===2?'往復':'片道',
+      routeType:'transit',routeNo:hit?hit.no:null});
+    showMsg('q-msg',`追加しました（${route} ¥${(fare*rt).toLocaleString()}）`,'ok');
+    renderList();
+    // 次の見積番号に更新
+    document.getElementById('q-mitsumori').value=autoIncrementMitsumori(mitsumori);
+    document.getElementById('q-from').value='';
+    document.getElementById('q-to').value='';
+    document.getElementById('q-route-preview').textContent='出発地と目的地を入力してください';
+  }else{
+    showMsg('q-msg','経路マスタに未登録です。出発地・目的地を確認してください','err');
+  }
+}
+
+// お気に入りルート
+function renderFavRoutes(){
+  const el=document.getElementById('fav-route-list');
+  if(!el)return;
+  if(!favRoutes.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--t3);">まだ登録されていません</div>';
+    return;
+  }
+  el.innerHTML=favRoutes.map((f,i)=>{
+    const hit=matchRoute(f.from,f.to);
+    const fare=hit?hit.fare*f.rt:0;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 12px;background:var(--bg);border-radius:var(--rs);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${f.name||f.from+'→'+f.to}</div>
+        <div style="font-size:11px;color:var(--t3);">${f.from}→${f.to}　${f.rt===2?'往復':'片道'}　${hit?'¥'+fare.toLocaleString():'未登録'}</div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="applyFavRoute(${i})">追加</button>
+      <button class="del-btn" onclick="deleteFavRoute(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function showAddFavForm(){
+  document.getElementById('add-fav-form').style.display='block';
+  updateQDatalist();
+}
+
+function saveFavRoute(){
+  const from=document.getElementById('fav-from').value.trim();
+  const to=document.getElementById('fav-to').value.trim();
+  const name=document.getElementById('fav-name').value.trim();
+  const rt=parseInt(document.getElementById('fav-rt').value);
+  if(!from||!to){alert('出発地と目的地を入力してください');return;}
+  favRoutes.push({from,to,name,rt});
+  localStorage.setItem('favRoutes',JSON.stringify(favRoutes));
+  renderFavRoutes();
+  document.getElementById('add-fav-form').style.display='none';
+  ['fav-from','fav-to','fav-name'].forEach(id=>document.getElementById(id).value='');
+}
+
+function deleteFavRoute(i){
+  favRoutes.splice(i,1);
+  localStorage.setItem('favRoutes',JSON.stringify(favRoutes));
+  renderFavRoutes();
+}
+
+function applyFavRoute(i){
+  const f=favRoutes[i];
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const date=document.getElementById('q-date').value;
+  if(!mitsumori){alert('先に見積番号を入力してください');return;}
+  document.getElementById('q-from').value=f.from;
+  document.getElementById('q-to').value=f.to;
+  document.getElementById('q-rt').value=String(f.rt);
+  updateQFavPreview();
+  // そのままaddQuickExpenseを呼ぶ
+  setTimeout(()=>addQuickExpense(),100);
+}
+
+// 前回コピー
+function renderCopyList(){
+  const el=document.getElementById('quick-copy-list');
+  if(!el)return;
+  // 精算リストの見積番号ごとにグループ化
+  const groups={};
+  expenses.forEach(e=>{
+    const k=String(e.mitsumori);
+    if(!groups[k])groups[k]=[];
+    groups[k].push(e);
+  });
+  const keys=Object.keys(groups);
+  if(!keys.length){
+    el.innerHTML='<div style="font-size:13px;color:var(--t3);">精算リストにデータがありません</div>';
+    return;
+  }
+  el.innerHTML=keys.map(no=>{
+    const trip=pendingTrips.find(t=>String(t.mitsumori)===no);
+    const items=groups[no];
+    const total=items.reduce((s,e)=>s+e.fare,0);
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:10px 14px;background:var(--bg);border-radius:var(--rs);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">見積番号 ${no}${trip?`　${trip.dest}　${trip.purpose}`:''}</div>
+        <div style="font-size:11px;color:var(--t3);">${trip?trip.date:''}　${items.length}件　¥${total.toLocaleString()}</div>
+      </div>
+      <button class="btn btn-sm" onclick="copyFromPrev('${no}')">日付変えてコピー</button>
+    </div>`;
+  }).join('');
+}
+
+function copyFromPrev(srcNo){
+  const newNo=nextMitsumori();
+  const newDate=document.getElementById('q-date')?document.getElementById('q-date').value:todayStr;
+  const date=prompt(`コピー先の利用日を入力してください（例：${todayStr}）`,newDate);
+  if(!date)return;
+  const newMitsumori=prompt('新しい見積番号を入力してください',newNo);
+  if(!newMitsumori)return;
+
+  // 元の出張情報をコピー
+  const srcTrip=pendingTrips.find(t=>String(t.mitsumori)===srcNo);
+  if(srcTrip){
+    pendingTrips.push({...srcTrip,mitsumori:newMitsumori,date});
+  }
+
+  // 元の交通費をコピー
+  const srcItems=expenses.filter(e=>String(e.mitsumori)===srcNo);
+  srcItems.forEach(e=>{
+    expenses.push({...e,id:Date.now()+Math.random(),mitsumori:newMitsumori,date});
+  });
+
+  renderList();
+  renderCopyList();
+  showMsg('q-msg',`見積番号 ${newMitsumori} としてコピーしました`,'ok');
+}
+
+
+function nav(n){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('nav-'+n).classList.add('active');
+  document.getElementById('page-'+n).classList.add('active');
+  if(n==='single'){
+    const el=document.getElementById('t-mitsumori');
+    if(el&&!el.value) el.value=nextMitsumori();
+  }
+  if(n==='quick') initQuickTab();
+  if(n==='quick'){
+    initQuickPage();
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function downloadTemplate(){
+  const wb=XLSX.utils.book_new();
+
+  // 出張情報シート
+  const tripData=[
+    ['見積番号','利用日','旅行者番号','出張日数','宿泊日数','出張先','用件','海外出張(1=はい)'],
+    ['例：202601（2行目以降は空欄でOK）','例：2026-03-17','例：1','例：2','例：1','例：大阪','例：営業訪問','1 または 空白'],
+  ];
+  const ws1=XLSX.utils.aoa_to_sheet(tripData);
+  ws1['!cols']=[{wch:28},{wch:16},{wch:14},{wch:12},{wch:12},{wch:16},{wch:16},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,'出張情報',ws1);
+
+  // 交通費シート
+  const transData=[
+    ['見積番号','利用日','出発地','目的地','車利用(1=はい)','km（ガソリン代）','往復(空欄=往復/1=片道)','高速代（円）','タクシー代（円）','宿泊費（実費・円）','駐車料金（円）'],
+    ['例：202601（出張情報と一致させる）','例：2026-03-17','例：新宿','例：渋谷','1 または 空白','例：52.3（往復合計km、車利用時のみ）','空欄=往復　1=片道','例：760（車利用時のみ）','例：2500','例：9800（空欄=日数×12,000円自動）','例：1200'],
+  ];
+  const ws2=XLSX.utils.aoa_to_sheet(transData);
+  ws2['!cols']=[{wch:28},{wch:16},{wch:14},{wch:14},{wch:14},{wch:20},{wch:20},{wch:16},{wch:14},{wch:22},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,'交通費',ws2);
+
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'base64'});
+  const a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+wbout;
+  a.download='旅費精算テンプレート.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function clearExpenses(){
+  if(!expenses.length)return;
+  if(!confirm('精算リストをすべて削除しますか？'))return;
+  expenses=[];
+  renderList();
+}
+
+function scrollToFirstUnregistered(){
+  const el=document.querySelector('.unreg-row');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function scrollToStep(id){
+  const el=document.getElementById(id);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function clearMaster(){
+  masterRoutes=[];
+  document.getElementById('master-status').innerHTML='';
+  document.getElementById('master-list').style.display='none';
+  document.getElementById('master-tbody').innerHTML='';
+  document.getElementById('fi-master').value='';
+  document.getElementById('step1-num').className='step-num';
+  // Step3以降もリセット
+  ['step3-card','step4-card','step5-card'].forEach(id=>document.getElementById(id).style.display='none');
+}
+
+function clearExcel(){
+  // 精算リストから今回のExcel由来のデータを削除
+  const nos=new Set(pendingTrips.map(t=>String(t.mitsumori)));
+  if(nos.size>0){
+    expenses=expenses.filter(e=>!nos.has(String(e.mitsumori)));
+    renderList();
+  }
+  pendingRows=[];pendingTrips=[];unregisteredRoutes=[];filledRoutes=[];
+  document.getElementById('excel-status').innerHTML='';
+  document.getElementById('fi-excel').value='';
+  document.getElementById('step2-num').className='step-num wait';
+  ['step3-card','step4-card','step5-card'].forEach(id=>document.getElementById(id).style.display='none');
+}
+function scrollToExport(){
+  const el=document.getElementById('export-area');
+  if(el&&el.style.display!=='none')el.scrollIntoView({behavior:'smooth',block:'start'});
+  else alert('まだ交通費が追加されていません');
+}
+
+// ============================================================
+// 設定
+// ============================================================
+function getCfg(){
+  return{
+    daily: parseInt(document.getElementById('cfg-daily').value)||5000,
+    hotel: parseInt(document.getElementById('cfg-hotel').value)||12000,
+    kaigai: parseInt(document.getElementById('cfg-kaigai').value)||50000,
+    gasRate: parseInt(document.getElementById('cfg-gas-rate').value)||15,
+    busStation: document.getElementById('cfg-bus-station').value.trim()||'京急久里浜'
+  };
+}
+
+function renderTravelerSelect(){
+  const sel=document.getElementById('t-traveler-no');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">選択</option>';
+  travelers.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.no;opt.textContent=`${t.no}：${t.name}`;
+    sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+}
+function onTravelerChange(){
+  const no=document.getElementById('t-traveler-no').value;
+  const t=travelers.find(t=>t.no===no);
+  document.getElementById('t-traveler').value=t?t.name:'';
+}
+function renderTravelerSettings(){
+  const el=document.getElementById('traveler-list');el.innerHTML='';
+  travelers.forEach((t,i)=>{
+    const row=document.createElement('div');row.className='traveler-row';
+    row.innerHTML=`<input type="text" value="${t.no}" placeholder="番号" style="width:70px;flex:none;" id="tno-${i}"/>
+      <input type="text" value="${t.name}" placeholder="旅行者名" id="tname-${i}"/>
+      <button class="btn btn-sm" onclick="removeTraveler(${i})">削除</button>`;
+    el.appendChild(row);
+  });
+}
+function addTravelerRow(){travelers.push({no:'',name:''});renderTravelerSettings();}
+function removeTraveler(i){travelers.splice(i,1);renderTravelerSettings();}
+function saveTravelers(){
+  const rows=document.getElementById('traveler-list').querySelectorAll('.traveler-row');
+  travelers=[];
+  rows.forEach((_,i)=>{
+    const no=document.getElementById('tno-'+i).value.trim();
+    const name=document.getElementById('tname-'+i).value.trim();
+    if(no||name)travelers.push({no,name});
+  });
+  renderTravelerSelect();
+  const msg=document.getElementById('traveler-save-msg');
+  msg.textContent='保存しました';setTimeout(()=>{msg.textContent='';},2000);
+}
+
+function getMaxNums(){return{gen:parseInt(document.getElementById('max-gen').value)||0,h500:parseInt(document.getElementById('max-500').value)||500,h700:parseInt(document.getElementById('max-700').value)||700};}
+function updateNumPreview(){
+  const mn=getMaxNums();
+  document.getElementById('num-preview').innerHTML=`次の採番：<strong>${mn.gen+1}</strong>〜（電車・バス等）　<strong>${mn.h500+1}</strong>〜（高速・ガソリン）　<strong>${mn.h700+1}</strong>〜（飛行機）`;
+}
+
+// ============================================================
+// Step 1: 経路マスタCSV読み込み
+// ============================================================
+function dropMaster(e){e.preventDefault();document.getElementById('dz-master').classList.remove('over');loadMaster(e.dataTransfer.files[0]);}
+function loadMaster(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let rows=[];
+      if(file.name.endsWith('.csv')){
+        const text=new TextDecoder('utf-8').decode(new Uint8Array(e.target.result));
+        rows=text.split('\n').map(l=>l.split(',').map(c=>c.trim().replace(/^"|"$/g,'')));
+      }else{
+        // Excel形式
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
+      }
+      // ヘッダー行をスキップ（1列目が数値でない行）
+      const data=rows.filter(r=>r.length>=5&&r[0]&&!isNaN(parseInt(r[0]))&&parseInt(r[0])>0);
+      masterRoutes=data.map(r=>({
+        no:String(r[0]).trim(),
+        from:String(r[1]||'').trim(),
+        to:String(r[2]||'').trim(),
+        kana:String(r[3]||'').trim(),
+        route:String(r[4]||'').trim(),
+        fare:parseInt(r[5])||0
+        // r[6]=登録日, r[7]=備考 は読み込み不要
+      }));
+      document.getElementById('master-status').innerHTML=`<div class="alert a-ok" style="cursor:pointer;" onclick="toggleMasterList()">${masterRoutes.length}件の経路を読み込みました　<span style="font-size:11px;">▼ 一覧を表示</span></div>`;
+      renderMasterList();
+      document.getElementById('step1-num').className='step-num done';
+      document.getElementById('step2-num').className='step-num';
+      ['step3-card','step4-card','step5-card'].forEach(id=>document.getElementById(id).style.display='none');
+    }catch(err){
+      document.getElementById('master-status').innerHTML=`<div class="alert a-err">読み込み失敗: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============================================================
+// Step 2: 交通費Excel読み込み＋照合
+// ============================================================
+function renderMasterList(filter=''){
+  const keyword=filter.trim().toLowerCase();
+  const filtered=keyword
+    ?masterRoutes.filter(r=>
+        String(r.no).includes(keyword)||
+        r.from.toLowerCase().includes(keyword)||
+        r.to.toLowerCase().includes(keyword)||
+        (r.route||'').toLowerCase().includes(keyword))
+    :masterRoutes;
+  const tbody=document.getElementById('master-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=filtered.map(r=>{
+    const i=masterRoutes.indexOf(r);
+    if(r._editing){
+      return`<tr style="background:var(--info-bg);" id="mmaster${i}">
+        <td><input type="text" value="${r.no||''}" onchange="masterRoutes[${i}].no=this.value" style="width:55px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.from||''}" onchange="masterRoutes[${i}].from=this.value" style="width:90px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.to||''}" onchange="masterRoutes[${i}].to=this.value" style="width:90px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.kana||''}" onchange="masterRoutes[${i}].kana=this.value" style="width:80px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.route||''}" onchange="masterRoutes[${i}].route=this.value" style="width:100px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="number" inputmode="numeric" value="${r.fare||0}" onchange="masterRoutes[${i}].fare=parseInt(this.value)||0" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-sm btn-primary" onclick="confirmMasterEdit(${i})">確定</button>
+          <button class="del-btn" onclick="deleteMasterRow(${i})">✕</button>
+        </td>
+      </tr>`;
+    }else{
+      return`<tr style="cursor:pointer;" onclick="editMasterRow(${i})" id="mmaster${i}">
+        <td style="font-weight:500;color:var(--t2);">${r.no}</td>
+        <td>${r.from}</td><td>${r.to}</td>
+        <td style="color:var(--t3);font-size:11px;">${r.kana||''}</td>
+        <td style="color:var(--t2);">${r.route||''}</td>
+        <td style="text-align:right;font-weight:500;">¥${r.fare.toLocaleString()}</td>
+        <td></td>
+      </tr>`;
+    }
+  }).join('');
+  const el=document.getElementById('master-list');
+  if(el&&masterRoutes.length>0)el.style.display='block';
+}
+function filterMaster(){
+  const kw=document.getElementById('master-search').value;
+  renderMasterList(kw);
+}
+
+function editMasterRow(i){
+  masterRoutes.forEach(r=>r._editing=false);
+  masterRoutes[i]._editing=true;
+  renderMasterList(document.getElementById('master-search').value);
+  setTimeout(()=>{
+    const row=document.getElementById('mmaster'+i);
+    if(row){const inp=row.querySelector('input');if(inp)inp.focus();}
+  },50);
+}
+
+function confirmMasterEdit(i){
+  masterRoutes[i]._editing=false;
+  renderMasterList(document.getElementById('master-search').value);
+  if(document.getElementById('match-tbody'))renderMatchTable();
+}
+
+function deleteMasterRow(i){
+  if(!confirm(`「${masterRoutes[i].from}→${masterRoutes[i].to}」を削除しますか？`))return;
+  masterRoutes.splice(i,1);
+  renderMasterList(document.getElementById('master-search').value);
+  if(document.getElementById('match-tbody')){recheckUnregistered();renderMatchTable();updateStep4();}
+}
+
+function exportMaster(){
+  if(!masterRoutes.length){alert('経路マスタが読み込まれていません');return;}
+  const header=['経路番号','出発地','目的地','目的地ふりがな','利用交通機関','交通費','登録日','備考'];
+  const rows=masterRoutes.map(r=>[r.no,r.from,r.to,r.kana||'',r.route||'',r.fare,'','']);
+  const csv=[header,...rows].map(r=>r.map(v=>String(v).includes(',')?`"${v}"`:v).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='経路マスタ_更新.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function toggleMasterList(){
+  const el=document.getElementById('master-list');
+  const btn=el.querySelector('button');
+  if(el.style.display==='none'){el.style.display='block';if(btn)btn.textContent='閉じる';}
+  else{el.style.display='none';if(btn)btn.textContent='一覧を表示';}
+  // ステータスのテキストも更新
+  const showing=el.style.display!=='none';
+  const statusEl=document.getElementById('master-status');
+  if(statusEl){
+    const txt=statusEl.querySelector('div');
+    if(txt)txt.innerHTML=`${masterRoutes.length}件の経路を読み込みました　<span style="font-size:11px;">${showing?'▲ 閉じる':'▼ 一覧を表示'}</span>`;
+  }
+}
+
+function dropExcel(e){e.preventDefault();document.getElementById('dz-excel').classList.remove('over');loadExcel(e.dataTransfer.files[0]);}
+function loadExcel(file){
+  if(!file)return;
+  if(!masterRoutes.length){
+    document.getElementById('excel-status').innerHTML='<div class="alert a-warn">先に経路マスタCSVをアップロードしてください</div>';
+    return;
+  }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const names=wb.SheetNames.map(s=>s.trim());
+      const tripIdx=names.findIndex(s=>s.includes('出張'));
+      const transIdx=names.findIndex(s=>s.includes('交通'));
+      if(tripIdx<0||transIdx<0){
+        document.getElementById('excel-status').innerHTML='<div class="alert a-err">シート名に「出張情報」「交通費」が必要です</div>';
+        return;
+      }
+      const tripRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[tripIdx]],{header:1,raw:true});
+      const transRows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[transIdx]],{header:1,raw:true});
+      processTripSheet(tripRows);
+      processTransSheet(transRows);
+      document.getElementById('excel-status').innerHTML='<div class="alert a-ok">読み込み完了</div>';
+      document.getElementById('step2-num').className='step-num done';
+      matchAndShow();
+    }catch(err){
+      document.getElementById('excel-status').innerHTML=`<div class="alert a-err">読み込み失敗: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// 日付変換
+function toDateStr(v){
+  if(!v&&v!==0)return '';
+  if(typeof v==='string'&&/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);
+  if(typeof v==='string'&&/^\d{4}\/\d{2}\/\d{2}/.test(v))return v.slice(0,10).replace(/\//g,'-');
+  if(v instanceof Date){const y=v.getFullYear(),m=String(v.getMonth()+1).padStart(2,'0'),d=String(v.getDate()).padStart(2,'0');return`${y}-${m}-${d}`;}
+  if(typeof v==='number'&&v>1&&v<100000){const serial=v>59?v-1:v;const base=new Date(1900,0,1);base.setDate(base.getDate()+serial-1);const y=base.getFullYear(),m=String(base.getMonth()+1).padStart(2,'0'),d=String(base.getDate()).padStart(2,'0');return`${y}-${m}-${d}`;}
+  return String(v);
+}
+
+function autoIncrementMitsumori(base){
+  const s=String(base).trim();
+  if(!s||s.length<5)return s;
+  const year=s.slice(0,4);
+  const seq=parseInt(s.slice(4))||0;
+  return year+String(seq+1).padStart(s.length-4,'0');
+}
+
+function isSkipRow(r){
+  if(!r||!r[0])return true;
+  const s=String(r[0]);
+  return s.includes('例：')||s.includes('見積番号')||s.trim()==='';
+}
+
+function processTripSheet(rows){
+  const dataRows=rows.filter(r=>!isSkipRow(r));
+  if(!dataRows.length){pendingTrips=[];return;}
+  const cfg=getCfg();
+  let lastMitsumori='';
+  pendingTrips=dataRows.map(r=>{
+    let mitsumori=typeof r[0]==='number'?String(r[0]):String(r[0]||'').trim();
+    if(!mitsumori&&lastMitsumori)mitsumori=autoIncrementMitsumori(lastMitsumori);
+    if(mitsumori)lastMitsumori=mitsumori;
+    const date=toDateStr(r[1]);
+    const travelerNo=String(r[2]||'').trim();
+    const travelerObj=travelers.find(t=>t.no===travelerNo);
+    const travelerName=travelerObj?travelerObj.name:'';
+    const days=parseInt(r[3])||0;
+    const nights=parseInt(r[4])||0;
+    const dest=String(r[5]||'').trim();
+    const purpose=String(r[6]||'').trim();
+    const overseas=String(r[7]||'').trim();
+    return{mitsumori,date,travelerNo,travelerName,days,nights,dest,purpose,overseas,
+      daily:days>0?days*cfg.daily:0,
+      hotel:nights>0?nights*cfg.hotel:0,
+      kaigai:overseas==='1'?cfg.kaigai:0};
+  });
+}
+
+function processTransSheet(rows){
+  const cfg=getCfg();
+  const busStation=cfg.busStation;
+  const isSkip=r=>!r||!r[2]||!r[3]||String(r[2]).includes('例：')||String(r[2]).includes('出発地')||String(r[3]).trim()==='';
+  const data=rows.filter(r=>!isSkip(r));
+
+  const raw=data.map((r,i)=>({
+    id:i,
+    mitsumori:typeof r[0]==='number'?String(r[0]):String(r[0]||'').trim(),
+    date:toDateStr(r[1]),
+    from:String(r[2]||'').trim(),
+    to:String(r[3]||'').trim(),
+    isCar:String(r[4]||'').trim()==='1',
+    km:parseFloat(r[5])||0,
+    gasRt:String(r[6]||'').trim()==='1'?1:2, // G列：1=片道、空欄=往復(2)
+    highway:parseInt(r[7])||0,               // H列：高速代
+    taxi:parseInt(r[8])||0,                  // I列：タクシー代
+    hotelActual:parseInt(r[9])||0,           // J列：宿泊費
+    parking:parseInt(r[10])||0,              // K列：駐車料金
+  }));
+
+  // バス自動追加
+  const withBus=[];
+  const busAdded=new Set();
+  const busNeeds={};
+  raw.forEach(r=>{
+    if(r.isCar)return;
+    const key=r.mitsumori+'|'+r.date;
+    if(!busNeeds[key])busNeeds[key]={go:false,back:false};
+    if(r.from.includes(busStation))busNeeds[key].go=true;
+    if(r.to.includes(busStation))busNeeds[key].back=true;
+    // G列が往復（gasRt=2）なら行きも帰りもあるとみなす
+    if(r.gasRt===2){
+      if(r.from.includes(busStation))busNeeds[key].back=true;
+      if(r.to.includes(busStation))busNeeds[key].go=true;
+    }
+  });
+  raw.forEach(r=>{
+    if(!r.isCar){
+      const key=r.mitsumori+'|'+r.date;
+      const need=busNeeds[key];
+      if(r.from.includes(busStation)&&!busAdded.has(key)){
+        const both=need.go&&need.back;
+        withBus.push({mitsumori:r.mitsumori,date:r.date,from:'山手南',to:busStation,
+          isCar:false,km:0,highway:0,taxi:0,hotelActual:0,parking:0,
+          _busAuto:true,_fare:both?380:190,_unitFare:190,_qty:both?2:1,_trip:both?'往復':'片道',
+          _route:'京急バス',_routeType:'transit'});
+        busAdded.add(key);
+      }
+      if(r.to.includes(busStation)&&!need.go&&!busAdded.has(key)){
+        withBus.push({mitsumori:r.mitsumori,date:r.date,from:busStation,to:'山手南',
+          isCar:false,km:0,highway:0,taxi:0,hotelActual:0,parking:0,
+          _busAuto:true,_fare:190,_unitFare:190,_qty:1,_trip:'片道',
+          _route:'京急バス',_routeType:'transit'});
+        busAdded.add(key);
+      }
+    }
+    withBus.push(r);
+  });
+
+  // タクシー・宿泊費・駐車料金の追加行
+  const extras=[];
+  const hotelAdded=new Set();
+  withBus.forEach(r=>{
+    if(r._busAuto)return;
+    if(r.taxi>0)extras.push({mitsumori:r.mitsumori,date:r.date,from:'',to:'',
+      _fare:r.taxi,_unitFare:r.taxi,_qty:1,_trip:'片道',_route:'タクシー代',_routeType:'transit',_extra:true});
+    const hkey=r.mitsumori+'|hotel';
+    if(!hotelAdded.has(hkey)){
+      const tripInfo=pendingTrips.find(t=>t.mitsumori===r.mitsumori);
+      if(r.hotelActual>0){
+        hotelAdded.add(hkey);
+        extras.push({mitsumori:r.mitsumori,date:r.date,from:'',to:'',
+          _fare:r.hotelActual,_unitFare:r.hotelActual,_qty:1,_trip:'片道',_route:'宿泊費（実費）',_routeType:'transit',_extra:true});
+      }else if(tripInfo&&tripInfo.nights>0){
+        hotelAdded.add(hkey);
+        const cfg=getCfg();
+        extras.push({mitsumori:r.mitsumori,date:r.date,from:'',to:'',
+          _fare:tripInfo.nights*cfg.hotel,_unitFare:cfg.hotel,_qty:tripInfo.nights,_trip:'片道',
+          _route:`宿泊費(${tripInfo.nights}泊×${cfg.hotel.toLocaleString()}円)`,_routeType:'transit',_extra:true});
+      }
+    }
+    if(r.parking>0)extras.push({mitsumori:r.mitsumori,date:r.date,from:'',to:'',
+      _fare:r.parking,_unitFare:r.parking,_qty:1,_trip:'片道',_route:'駐車料金',_routeType:'transit',_extra:true});
+  });
+
+  pendingRows=[...withBus,...extras];
+}
+
+// ============================================================
+// Step 3: 経路マスタと照合
+// ============================================================
+function matchRoute(from,to){
+  if(!from||!to)return null;
+  return masterRoutes.find(m=>
+    m.from===from&&m.to===to ||
+    m.from===to&&m.to===from  // 逆方向も一致とする
+  )||null;
+}
+
+function matchAndShow(){
+  unregisteredRoutes=[];
+  const hitSet=new Set();
+
+  // pendingRowsにインデックスを付与
+  pendingRows.forEach((r,i)=>r._idx=i);
+
+  pendingRows.forEach(r=>{
+    if(r._busAuto||r._extra)return;
+    if(r.isCar&&!r.km&&!r.highway)return; // 車利用で何もなし→スキップ
+    // ガソリン代のみ（km>0 & highway=0）でもマスタに高速代が登録されていれば照合
+    const key=`${r.from}|${r.to}`;
+    if(!hitSet.has(key)){
+      hitSet.add(key);
+      if(!r.isCar||r.highway>0||(r.isCar&&r.km>0&&matchRoute(r.from,r.to))){
+        const hit=matchRoute(r.from,r.to);
+        if(!hit&&!r.isCar&&r._manualFare==null)unregisteredRoutes.push({from:r.from,to:r.to,route:'',fare:0,kana:''});
+        // 車利用でkm>0かつマスタに高速代あり→未登録には出さない（ガソリン代計算で対応）
+      }
+    }
+  });
+
+  const hitCount=pendingRows.filter(r=>{
+    if(r._busAuto||r._extra)return false;
+    if(r.isCar&&r.km>0&&!r.highway)return false;
+    if(r.isCar&&!r.km&&!r.highway)return false;
+    return matchRoute(r.from,r.to);
+  }).length;
+
+  let html=`<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+    <span class="badge b-hit" style="font-size:12px;padding:4px 12px;">マスタ一致 ${hitCount}件</span>
+    ${unregisteredRoutes.length>0?`<span class="badge b-new" style="font-size:12px;padding:4px 12px;cursor:pointer;" onclick="scrollToFirstUnregistered()">未登録 ${unregisteredRoutes.length}件 ↓</span>`:''}
+    <span style="font-size:11px;color:var(--t3);">行をクリックで編集</span>
+    <button class="btn btn-sm" onclick="addPendingRow()">＋ 行を追加</button>
+  </div>`;
+
+  html+=`<div style="overflow-x:auto;"><table class="tbl" id="match-table">
+    <thead><tr><th>見積番号</th><th>出発地</th><th>目的地</th><th>利用日</th><th>種別</th><th style="text-align:right;">運賃</th><th></th></tr></thead>
+    <tbody id="match-tbody"></tbody></table></div>`;
+
+  document.getElementById('match-result').innerHTML=html;
+  renderMatchTable();
+  document.getElementById('step3-card').style.display='block';
+
+  if(unregisteredRoutes.length>0){
+    document.getElementById('step4-card').style.display='block';
+  }else{
+    document.getElementById('step4-card').style.display='none';
+  }
+  // 未登録があってもStep5は常に表示
+  showStep5();
+}
+
+function renderMatchTable(){
+  const tbody=document.getElementById('match-tbody');
+  if(!tbody)return;
+  let html='';
+  pendingRows.filter(r=>!r._busAuto&&!r._extra).forEach(r=>{
+    if(r._editing){
+      const hit=(!r.isCar||r.highway>0)?matchRoute(r.from,r.to):null;
+      const defaultFare=r.isCar&&r.km>0?calcGas(r.km):hit?hit.fare:(r._manualFare||0);
+      const fareCell=r.isCar&&r.km>0
+        ?`<span style="font-size:12px;">¥${calcGas(r.km).toLocaleString()}</span>`
+        :`<input type="number" inputmode="numeric" value="${r._manualFare!=null?r._manualFare:defaultFare}" onchange="updatePendingRowAndMaster(${r._idx},parseInt(this.value)||0)" style="width:90px;padding:4px 6px;font-size:12px;border:.5px solid var(--${hit?'border':'warn-b'});border-radius:4px;background:#fff;" placeholder="金額"/>`;
+      html+=`<tr style="background:var(--info-bg);" id="mrow${r._idx}">
+        <td><input type="text" value="${r.mitsumori||''}" onchange="updatePendingRow(${r._idx},'mitsumori',this.value)" style="width:80px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.from||''}" oninput="updatePendingRow(${r._idx},'from',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="text" value="${r.to||''}" oninput="updatePendingRow(${r._idx},'to',this.value)" style="width:100px;padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td><input type="date" value="${r.date||''}" onchange="updatePendingRow(${r._idx},'date',this.value)" style="padding:4px 6px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+        <td style="color:var(--t2);font-size:11px;">${r.isCar&&r.km>0?'ガソリン代計算':r.isCar&&r.highway>0?'高速代':'公共交通機関'}<br><span class="route-hit-hint" style="font-size:10px;">${hit?`✓ ${hit.route} ¥${hit.fare.toLocaleString()}`:(r.from&&r.to?'未登録':'')}</span></td>
+        <td style="text-align:right;">${fareCell}</td>
+        <td><button class="btn btn-sm btn-primary" onclick="confirmEdit(${r._idx})">確定</button></td>
+      </tr>`;
+    }else{
+      // ガソリン代行
+      if(r.isCar&&r.km>0){
+        html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}">
+          <td style="font-weight:500;">${r.mitsumori||'—'}</td>
+          <td>${r.from||'—'}</td><td>${r.to||'—'}</td><td>${r.date||'—'}</td>
+          <td><span class="badge b-500">ガソリン代計算</span></td>
+          <td style="text-align:right;font-weight:500;">¥${calcGas(r.km).toLocaleString()}</td>
+          <td><button class="del-btn" onclick="event.stopPropagation();deletePendingRow(${r._idx})">✕</button></td>
+        </tr>`;
+        // マスタに高速代が登録されていれば高速代行も追加表示
+        const hwHit=matchRoute(r.from,r.to);
+        if(hwHit){
+          const hwUnitFare=r._manualFare!=null?r._manualFare:hwHit.fare;
+          const hwTotal=hwUnitFare*r.gasRt;
+          const tripLabel=r.gasRt===2?'往復':'片道';
+          html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}_hw">
+            <td style="font-weight:500;">${r.mitsumori||'—'}</td>
+            <td>${r.from||'—'}</td><td>${r.to||'—'}</td><td>${r.date||'—'}</td>
+            <td><span class="badge b-hit">${hwHit.route}${r._manualFare!=null?' <span style="font-size:10px;opacity:.7;">金額修正済</span>':''}</span> <span style="font-size:10px;color:var(--t3);">${tripLabel}</span></td>
+            <td style="text-align:right;font-weight:500;">¥${hwTotal.toLocaleString()}</td>
+            <td></td>
+          </tr>`;
+        }
+      }
+      // 高速代行（ガソリン代と同じ行でも別に描画）
+      if(r.isCar&&r.highway>0){
+        const hit=matchRoute(r.from,r.to);
+        const displayFare=r._manualFare!=null?r._manualFare:(hit?hit.fare:null);
+        const badge=hit
+          ?(r._manualFare!=null?`<span class="badge b-hit">${hit.route} <span style="font-size:10px;opacity:.7;">金額修正済</span></span>`:`<span class="badge b-hit">${hit.route}</span>`)
+          :'<span class="badge b-new">未登録</span>';
+        html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}_hw">
+          <td style="font-weight:500;">${r.mitsumori||'—'}</td>
+          <td>${r.from||'—'}</td><td>${r.to||'—'}</td><td>${r.date||'—'}</td>
+          <td>${badge}</td>
+          <td style="text-align:right;font-weight:500;">${displayFare!=null?'¥'+displayFare.toLocaleString():'—'}</td>
+          <td><button class="del-btn" onclick="event.stopPropagation();deletePendingRow(${r._idx})">✕</button></td>
+        </tr>`;
+      }
+      // 公共交通機関行
+      if(!r.isCar){
+        const hit=matchRoute(r.from,r.to);
+        const unitFare=r._manualFare!=null?r._manualFare:(hit?hit.fare:null);
+        const qty=r.gasRt||2;
+        const displayFare=unitFare!=null?unitFare*qty:null;
+        const badge=hit
+          ?(r._manualFare!=null?`<span class="badge b-hit">${hit.route} <span style="font-size:10px;opacity:.7;">金額修正済</span></span>`:`<span class="badge b-hit">${hit.route}</span>`)
+          :'<span class="badge b-new">未登録</span>';
+        const tripLabel=qty===2?'往復':'片道';
+        html+=`<tr style="cursor:pointer;" onclick="editPendingRow(${r._idx})" id="mrow${r._idx}" ${!hit?'class="unreg-row"':''}>
+          <td style="font-weight:500;">${r.mitsumori||'—'}</td>
+          <td>${r.from||'—'}</td><td>${r.to||'—'}</td><td>${r.date||'—'}</td>
+          <td>${badge} <span style="font-size:10px;color:var(--t3);">${tripLabel}</span></td>
+          <td style="text-align:right;font-weight:500;">${displayFare!=null?'¥'+displayFare.toLocaleString():'—'}</td>
+          <td><button class="del-btn" onclick="event.stopPropagation();deletePendingRow(${r._idx})">✕</button></td>
+        </tr>`;
+      }
+    }
+  });
+  tbody.innerHTML=html;
+}
+
+function editPendingRow(idx){
+  pendingRows.forEach(r=>r._editing=false);
+  const r=pendingRows[idx];
+  if(r)r._editing=true;
+  renderMatchTable();
+  // フォーカスを最初の入力欄に
+  setTimeout(()=>{
+    const row=document.getElementById('mrow'+idx);
+    if(row){const inp=row.querySelector('input');if(inp)inp.focus();}
+  },50);
+}
+
+function updatePendingRowAndMaster(idx,fare){
+  const r=pendingRows[idx];
+  if(!r)return;
+  r._manualFare=fare;
+  // マスタにも反映
+  const hit=matchRoute(r.from,r.to);
+  if(hit)hit.fare=fare;
+}
+
+function updatePendingRow(idx,field,val){
+  const r=pendingRows[idx];
+  if(!r)return;
+  r[field]=val;
+  // from/toが変わったらマスタ照合してリアルタイム反映
+  if(field==='from'||field==='to'){
+    recheckUnregistered();
+    if(r.from&&r.to){
+      const hit=matchRoute(r.from,r.to);
+      if(hit){
+        r.routeNo=hit.no;
+        // 編集中の金額欄にヒント表示
+        const fareInput=document.querySelector(`#mrow${idx} input[type="number"]`);
+        const hitSpan=document.querySelector(`#mrow${idx} .route-hit-hint`);
+        if(hitSpan){
+          hitSpan.textContent=`✓ ${hit.route} ¥${hit.fare.toLocaleString()}`;
+          hitSpan.style.color='var(--ok)';
+        }
+      }else{
+        r.routeNo=null;
+        const hitSpan=document.querySelector(`#mrow${idx} .route-hit-hint`);
+        if(hitSpan){hitSpan.textContent='未登録';hitSpan.style.color='var(--warn)';}
+      }
+    }
+  }
+}
+
+function confirmEdit(idx){
+  const r=pendingRows[idx];
+  if(!r){return;}
+  r._editing=false;
+  // from/toが変わった場合にマスタ再照合してrouteNoを更新
+  if(r.from&&r.to){
+    const hit=matchRoute(r.from,r.to);
+    if(hit){
+      r.routeNo=hit.no;
+      if(r._manualFare==null)r._manualFare=null; // マスタ一致したら手動金額リセット
+    }else{
+      r.routeNo=null;
+    }
+  }
+  recheckUnregistered();
+  renderMatchTable();
+  updateStep4();
+}
+
+function deletePendingRow(idx){
+  pendingRows.splice(idx,1);
+  pendingRows.forEach((r,i)=>r._idx=i);
+  recheckUnregistered();
+  renderMatchTable();
+  updateStep4();
+}
+
+function addPendingRow(){
+  const last=pendingRows.filter(r=>!r._busAuto&&!r._extra).slice(-1)[0];
+  const newRow={
+    _idx:pendingRows.length,
+    mitsumori:last?last.mitsumori:'',
+    from:'',to:'',date:last?last.date:todayStr,
+    isCar:false,km:0,gasRt:2,highway:0,taxi:0,hotelActual:0,parking:0,
+    _editing:true
+  };
+  pendingRows.push(newRow);
+  pendingRows.forEach((r,i)=>r._idx=i);
+  renderMatchTable();
+  setTimeout(()=>{
+    const row=document.getElementById('mrow'+newRow._idx);
+    if(row){const inp=row.querySelector('input');if(inp)inp.focus();}
+  },50);
+}
+
+function recheckUnregistered(){
+  unregisteredRoutes=[];
+  const hitSet=new Set();
+  pendingRows.forEach(r=>{
+    if(r._busAuto||r._extra)return;
+    if(r.isCar&&r.km>0&&!r.highway)return;
+    if(r.isCar&&!r.km&&!r.highway)return;
+    const key=`${r.from}|${r.to}`;
+    if(!hitSet.has(key)){
+      hitSet.add(key);
+      const hit=matchRoute(r.from,r.to);
+      // マスタになくても_manualFareが入力済みなら未登録扱いしない
+      if(!hit&&r.from&&r.to&&r._manualFare==null)
+        unregisteredRoutes.push({from:r.from,to:r.to,route:'',fare:0,kana:''});
+    }
+  });
+}
+
+function updateStep4(){
+  recheckUnregistered();
+  if(unregisteredRoutes.length>0){
+    document.getElementById('step4-card').style.display='block';
+  }else{
+    document.getElementById('step4-card').style.display='none';
+  }
+  // 未登録があってもStep5は常に表示
+  showStep5();
+}
+
+// ============================================================
+// Step 4: 未登録経路Excel出力・読み込み
+// ============================================================
+function downloadUnregistered(){
+  if(!unregisteredRoutes.length){alert('未登録経路がありません');return;}
+  const rows=[
+    ['経路番号','出発地','目的地','目的地ふりがな','利用交通機関','交通費（円）'],
+    ...unregisteredRoutes.map(r=>['',r.from,r.to,'','',0])
+  ];
+  const csv=rows.map(r=>r.map(v=>String(v).includes(',')?`"${v}"`:v).join(',')).join('\r\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='未登録経路リスト.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function dropUnreg(e){e.preventDefault();document.getElementById('dz-unreg').classList.remove('over');loadUnreg(e.dataTransfer.files[0]);}
+function loadUnreg(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});
+      const isHdr=r=>!r[0]||isNaN(parseInt(r[0]))||String(r[1]).includes('出発地');
+      const data=rows.filter(r=>r.length>=5&&!isHdr(r));
+      filledRoutes=data.map(r=>({
+        no:String(r[0]||'').trim(),
+        from:String(r[1]||'').trim(),
+        to:String(r[2]||'').trim(),
+        kana:String(r[3]||'').trim(),
+        route:String(r[4]||'').trim(),
+        fare:parseInt(r[5])||0
+      }));
+      // マスタに追加
+      filledRoutes.forEach(r=>{
+        if(!masterRoutes.find(m=>m.from===r.from&&m.to===r.to))
+          masterRoutes.push(r);
+      });
+      document.getElementById('unreg-status').innerHTML=`<div class="alert a-ok">${filledRoutes.length}件の経路を登録しました</div>`;
+      unregisteredRoutes=unregisteredRoutes.filter(u=>!filledRoutes.find(f=>f.from===u.from&&f.to===u.to));
+      if(unregisteredRoutes.length===0){
+        document.getElementById('step4-card').style.display='none';
+        showStep5();
+      }else{
+        matchAndShow();
+      }
+    }catch(err){
+      document.getElementById('unreg-status').innerHTML=`<div class="alert a-err">読み込み失敗: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============================================================
+// Step 5: 精算リストへ反映
+// ============================================================
+function showStep5(){
+  const total=pendingRows.length+pendingTrips.length;
+  document.getElementById('ready-summary').innerHTML=
+    `<div class="alert a-ok">出張情報 ${pendingTrips.length}件・交通費 ${pendingRows.length}件が準備できました</div>`;
+  document.getElementById('step5-card').style.display='block';
+}
+
+function calcGas(km){return Math.round(km*getCfg().gasRate);}
+
+function applyToList(){
+  // 同じ見積番号の既存データを削除（重複防止）
+  const nos=new Set(pendingTrips.map(t=>String(t.mitsumori)));
+  if(nos.size>0) expenses=expenses.filter(e=>!nos.has(String(e.mitsumori)));
+  const rt=1;
+  pendingRows.forEach(r=>{
+    if(r._busAuto||r._extra){
+      expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
+        from:r.from,to:r.to,route:r._route,fare:r._fare,unitFare:r._unitFare,
+        qty:r._qty,trip:r._trip,routeType:r._routeType});
+      return;
+    }
+    if(r.isCar){
+      // ガソリン代
+      if(r.km>0){
+        const gasAmt=calcGas(r.km);
+        expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
+          from:r.from,to:r.to,route:`ガソリン代(${r.from}〜${r.to} ${r.km}km)`,
+          fare:gasAmt,unitFare:Math.round(gasAmt/r.gasRt),qty:r.gasRt,trip:r.gasRt===2?'往復':'片道',routeType:'gas'});
+        // マスタに高速代が登録されていれば自動追加
+        if(!r.highway){
+          const hwHit=matchRoute(r.from,r.to);
+          if(hwHit){
+            const hwUnitFare=r._manualFare!=null?r._manualFare:hwHit.fare;
+            expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
+              from:r.from,to:r.to,route:hwHit.route,
+              fare:hwUnitFare*r.gasRt,unitFare:hwUnitFare,
+              qty:r.gasRt,trip:r.gasRt===2?'往復':'片道',routeType:'highway',routeNo:hwHit.no});
+          }
+        }
+      }
+      // 高速代：H列に直接入力された場合
+      if(r.highway>0){
+        const hit=matchRoute(r.from,r.to);
+        const hwUnitFare=r._manualFare!=null?r._manualFare:(hit?hit.fare:r.highway);
+        const route=hit?hit.route:`高速代(${r.from}〜${r.to})`;
+        const routeNo=hit?hit.no:null;
+        expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
+          from:r.from,to:r.to,route,
+          fare:hwUnitFare*r.gasRt,unitFare:hwUnitFare,
+          qty:r.gasRt,trip:r.gasRt===2?'往復':'片道',
+          routeType:'highway',...(routeNo?{routeNo}:{})});
+      }
+      return;
+    }
+    // 通常の交通費：_manualFareがあれば優先、なければマスタ金額
+    const hit=matchRoute(r.from,r.to);
+    const unitFare=r._manualFare!=null?r._manualFare:(hit?hit.fare:0);
+    const route=hit?hit.route:r.from&&r.to?r.from+'→'+r.to:'不明';
+    const routeNo=hit&&r._manualFare==null?hit.no:null;
+    const qty=r.gasRt||2;
+    const fare=unitFare*qty;
+    // 未登録（unitFare=0）でも区間・利用日を出すために追加
+    if(unitFare>0||(!hit&&r.from&&r.to)){
+      expenses.push({id:Date.now()+Math.random(),mitsumori:r.mitsumori,date:r.date,
+        from:r.from,to:r.to,route,fare,unitFare,
+        qty,trip:qty===2?'往復':'片道',routeType:'transit',
+        _unregistered:!hit&&unitFare===0,  // 未登録フラグ
+        ...(routeNo?{routeNo}:{})});
+    }
+  });
+  renderList();
+  nav('list');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ============================================================
+// 1件手動入力
+// ============================================================
+function syncDates(val){
+  ['hotel-date','taxi-date','park-date'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value=val;
+  });
+}
+
+function nextMitsumori(){
+  const allNos=[
+    ...expenses.map(e=>e.mitsumori),
+    ...pendingTrips.map(t=>t.mitsumori)
+  ].filter(Boolean);
+  if(!allNos.length){
+    // リストが空なら現在年+01（例：202601）
+    return String(now.getFullYear())+'01';
+  }
+  const max=allNos.reduce((a,b)=>a.localeCompare(b)>0?a:b);
+  return autoIncrementMitsumori(max);
+}
+
+function getMitsumori(){return document.getElementById('t-mitsumori').value.trim();}
+function setRT(type){
+  ['transit','highway','gas','flight'].forEach(t=>{
+    document.getElementById('rt-'+t).classList.toggle('active',t===type);
+    document.getElementById('form-'+t).style.display=t===type?'block':'none';
+  });
+}
+function setGasMode(mode){
+  document.getElementById('tog-hw').classList.toggle('active',mode==='hw');
+  document.getElementById('tog-gen').classList.toggle('active',mode==='gen');
+  document.getElementById('gas-hw').style.display=mode==='hw'?'block':'none';
+  document.getElementById('gas-gen').style.display=mode==='gen'?'block':'none';
+}
+function sw(a,b){const fa=document.getElementById(a),fb=document.getElementById(b);[fa.value,fb.value]=[fb.value,fa.value];}
+
+function previewH(){
+  const fare=parseInt(document.getElementById('h-fare').value)||0,rt=parseInt(document.getElementById('h-rt').value);
+  const el=document.getElementById('h-preview');
+  if(!fare){el.style.display='none';return;}
+  el.style.display='block';el.textContent=`片道 ¥${fare.toLocaleString()} × ${rt} = ¥${(fare*rt).toLocaleString()}`;
+}
+function previewGas(mode){
+  const isHw=mode==='hw';
+  const km=parseFloat(document.getElementById(isHw?'g-km':'gg-km').value)||0;
+  const rt=parseInt(document.getElementById(isHw?'g-rt':'gg-rt').value);
+  const el=document.getElementById(isHw?'g-preview':'gg-preview');
+  if(!km){el.textContent='距離を入力してください（15円/km・小数点以下四捨五入）';return;}
+  const unit=calcGas(km);
+  el.innerHTML=`${km}km × 15円 = <strong>¥${unit.toLocaleString()}</strong>　× ${rt} = <strong>¥${(unit*rt).toLocaleString()}</strong>`;
+}
+
+function addTransit(){
+  const from=document.getElementById('s-from').value.trim(),to=document.getElementById('s-to').value.trim();
+  const date=document.getElementById('s-date').value;
+  const route=document.getElementById('s-route').value.trim()||'電車・バス';
+  const fare=parseInt(document.getElementById('s-fare').value),rt=parseInt(document.getElementById('s-rt').value);
+  if(!from||!to){showMsg('s-msg','出発地と目的地を入力してください','err');return;}
+  if(!fare||fare<=0){showMsg('s-msg','運賃を入力してください','err');return;}
+  expenses.push({id:Date.now()+Math.random(),mitsumori:getMitsumori(),date,from,to,
+    route,fare:fare*rt,unitFare:fare,qty:rt,trip:rt===2?'往復':'片道',routeType:'transit'});
+  renderList();showMsg('s-msg','追加しました','ok');
+  ['s-from','s-to','s-route','s-fare'].forEach(id=>document.getElementById(id).value='');
+}
+function addHighway(){
+  const from=document.getElementById('h-from').value.trim(),to=document.getElementById('h-to').value.trim();
+  const date=document.getElementById('h-date').value,road=document.getElementById('h-road').value.trim()||'高速道路';
+  const fare=parseInt(document.getElementById('h-fare').value),rt=parseInt(document.getElementById('h-rt').value);
+  if(!from||!to){showMsg('h-msg','IC名を入力してください','err');return;}
+  if(!fare||fare<=0){showMsg('h-msg','料金を入力してください','err');return;}
+  expenses.push({id:Date.now()+Math.random(),mitsumori:getMitsumori(),date,from,to,
+    route:road,fare:fare*rt,unitFare:fare,qty:rt,trip:rt===2?'往復':'片道',routeType:'highway'});
+  renderList();showMsg('h-msg','追加しました','ok');
+  ['h-from','h-to','h-road','h-fare'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('h-preview').style.display='none';
+}
+function addGas(mode){
+  const isHw=mode==='hw';
+  const from=document.getElementById(isHw?'g-from':'gg-from').value.trim(),to=document.getElementById(isHw?'g-to':'gg-to').value.trim();
+  const date=document.getElementById(isHw?'g-date':'gg-date').value,km=parseFloat(document.getElementById(isHw?'g-km':'gg-km').value),rt=parseInt(document.getElementById(isHw?'g-rt':'gg-rt').value);
+  if(!from||!to){showMsg('g-msg','出発地と目的地を入力してください','err');return;}
+  if(!km||km<=0){showMsg('g-msg','距離を入力してください','err');return;}
+  const unit=calcGas(km);
+  expenses.push({id:Date.now()+Math.random(),mitsumori:getMitsumori(),date,from,to,
+    route:`ガソリン代(${from}〜${to} ${km}km)`,fare:unit*rt,unitFare:unit,qty:rt,trip:rt===2?'往復':'片道',routeType:'gas'});
+  renderList();showMsg('g-msg',`追加しました（${km}km → ¥${unit.toLocaleString()} × ${rt}）`,'ok');
+  [isHw?'g-from':'gg-from',isHw?'g-to':'gg-to',isHw?'g-km':'gg-km'].forEach(id=>document.getElementById(id).value='');
+  previewGas(mode);
+}
+function addFlight(){
+  const from=document.getElementById('fl-from').value.trim(),to=document.getElementById('fl-to').value.trim();
+  const date=document.getElementById('fl-date').value,airline=document.getElementById('fl-airline').value.trim()||'飛行機';
+  const fare=parseInt(document.getElementById('fl-fare').value),rt=parseInt(document.getElementById('fl-rt').value);
+  if(!from||!to){showMsg('fl-msg','空港名を入力してください','err');return;}
+  if(!fare||fare<=0){showMsg('fl-msg','料金を入力してください','err');return;}
+  expenses.push({id:Date.now()+Math.random(),mitsumori:getMitsumori(),date,from,to,
+    route:airline,fare:fare*rt,unitFare:fare,qty:rt,trip:rt===2?'往復':'片道',routeType:'flight'});
+  renderList();showMsg('fl-msg','追加しました','ok');
+  ['fl-from','fl-to','fl-airline','fl-fare'].forEach(id=>document.getElementById(id).value='');
+}
+function addExtra(type){
+  const configs={
+    hotel:{date:'hotel-date',fare:'hotel-fare',msg:'hotel-msg',route:'宿泊費（実費）'},
+    taxi: {date:'taxi-date', fare:'taxi-fare', msg:'taxi-msg', route:'タクシー代'},
+    park: {date:'park-date', fare:'park-fare', msg:'park-msg', route:'駐車料金'},
+  };
+  const c=configs[type];
+  const date=document.getElementById(c.date).value;
+  const fareVal=parseInt(document.getElementById(c.fare).value);
+  if(!fareVal||fareVal<=0){showMsg(c.msg,'金額を入力してください','err');return;}
+  expenses.push({id:Date.now()+Math.random(),mitsumori:getMitsumori(),date,from:'',to:'',
+    route:c.route,fare:fareVal,unitFare:fareVal,qty:1,trip:'片道',routeType:'transit'});
+  renderList();showMsg(c.msg,'追加しました','ok');
+  document.getElementById(c.fare).value='';
+}
+function showMsg(id,txt,type){
+  const el=document.getElementById(id);
+  const cls={ok:'a-ok',err:'a-err',info:'a-info'}[type]||'a-info';
+  el.innerHTML=`<div class="alert ${cls}" style="margin-top:8px;">${txt}</div>`;
+  if(type==='ok')setTimeout(()=>{el.innerHTML='';},2500);
+}
+
+// ============================================================
+// クイック入力
+// ============================================================
+let favorites = JSON.parse(localStorage.getItem('ryohi_favorites')||'[]');
+let qRoutes = []; // 追加済み交通費行
+
+function initQuickTab(){
+  // 見積番号自動採番
+  const mEl=document.getElementById('q-mitsumori');
+  if(mEl&&!mEl.value) mEl.value=nextMitsumori();
+  // 日付デフォルト
+  const dEl=document.getElementById('q-date');
+  if(dEl&&!dEl.value) dEl.value=todayStr;
+  // 旅行者セレクト
+  const sel=document.getElementById('q-traveler');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">選択</option>';
+  travelers.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.no;opt.textContent=`${t.no}：${t.name}`;
+    sel.appendChild(opt);
+  });
+  if(cur)sel.value=cur;
+  // 経路マスタからdatalist生成
+  buildQDatalist();
+  // お気に入り表示
+  renderFavorites();
+  // 前回コピー表示
+  renderPrevCopy();
+  // 交通費リスト
+  renderQRoutes();
+}
+
+function buildQDatalist(){
+  const froms=[...new Set(masterRoutes.map(r=>r.from))].sort();
+  const tos=[...new Set(masterRoutes.map(r=>r.to))].sort();
+  const allStations=[...new Set([...froms,...tos])].sort();
+  ['q-from-list','q-to-list'].forEach(id=>{
+    const dl=document.getElementById(id);
+    if(!dl)return;
+    dl.innerHTML=allStations.map(s=>`<option value="${s}">`).join('');
+  });
+}
+
+function onQTravelerChange(){}
+
+function syncQDate(){
+  // 日付変更は特に他に連動しない
+}
+
+function qLookupRoute(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const preview=document.getElementById('q-route-preview');
+  const fareEl=document.getElementById('q-fare');
+  if(!from||!to){preview.style.display='none';return;}
+  const hit=matchRoute(from,to);
+  if(hit){
+    preview.style.display='block';
+    preview.innerHTML=`<span style="color:var(--ok);">✓ ${hit.route}　¥${hit.fare.toLocaleString()}</span>`;
+    if(!fareEl.value) fareEl.placeholder=hit.fare;
+  }else{
+    preview.style.display='block';
+    preview.innerHTML=`<span style="color:var(--warn);">未登録（金額を手動入力してください）</span>`;
+  }
+}
+
+function addQRoute(){
+  const from=document.getElementById('q-from').value.trim();
+  const to=document.getElementById('q-to').value.trim();
+  const rt=parseInt(document.getElementById('q-rt').value)||2;
+  const fareInput=parseInt(document.getElementById('q-fare').value)||0;
+  if(!from||!to){showMsg('q-msg','出発地と目的地を入力してください','err');return;}
+  const hit=matchRoute(from,to);
+  const unitFare=fareInput||( hit?hit.fare:0);
+  if(!unitFare){showMsg('q-msg','金額を入力してください','err');return;}
+  qRoutes.push({
+    from,to,
+    route:hit?hit.route:`${from}→${to}`,
+    routeNo:hit?hit.no:null,
+    unitFare,fare:unitFare*rt,qty:rt,trip:rt===2?'往復':'片道',
+    routeType:'transit'
+  });
+  renderQRoutes();
+  // 入力欄クリア
+  document.getElementById('q-from').value='';
+  document.getElementById('q-to').value='';
+  document.getElementById('q-fare').value='';
+  document.getElementById('q-fare').placeholder='自動取得';
+  document.getElementById('q-route-preview').style.display='none';
+  showMsg('q-msg','追加しました','ok');
+}
+
+function renderQRoutes(){
+  const el=document.getElementById('q-routes-list');
+  if(!qRoutes.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--t3);padding:8px 0;">交通費がまだ追加されていません</div>';
+    return;
+  }
+  el.innerHTML=`<table class="tbl" style="margin-bottom:8px;"><thead><tr><th>出発地</th><th>目的地</th><th>交通手段</th><th style="text-align:center;">数量</th><th style="text-align:right;">金額</th><th></th></tr></thead><tbody>`+
+    qRoutes.map((r,i)=>`<tr>
+      <td>${r.from}</td><td>${r.to}</td><td>${r.route}</td>
+      <td style="text-align:center;color:var(--t2);">${r.qty}（${r.trip}）</td>
+      <td style="text-align:right;font-weight:500;">¥${r.fare.toLocaleString()}</td>
+      <td><button class="del-btn" onclick="qRoutes.splice(${i},1);renderQRoutes()">✕</button></td>
+    </tr>`).join('')+
+    `</tbody></table>`;
+}
+
+function applyQuickInput(){
+  const mitsumori=document.getElementById('q-mitsumori').value.trim();
+  const travelerNo=document.getElementById('q-traveler').value;
+  const date=document.getElementById('q-date').value;
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  const days=parseInt(document.getElementById('q-days').value)||1;
+  const nights=parseInt(document.getElementById('q-nights').value)||0;
+  const overseas=document.getElementById('q-overseas').value;
+  const taxi=parseInt(document.getElementById('q-taxi').value)||0;
+  const hotelActual=parseInt(document.getElementById('q-hotel-actual').value)||0;
+  const parking=parseInt(document.getElementById('q-parking').value)||0;
+
+  if(!mitsumori){showMsg('q-msg','見積番号を入力してください','err');return;}
+  if(!travelerNo){showMsg('q-msg','旅行者を選択してください','err');return;}
+  if(!date){showMsg('q-msg','出張日を入力してください','err');return;}
+
+  const cfg=getCfg();
+  const travelerObj=travelers.find(t=>t.no===travelerNo);
+
+  // pendingTripsに出張情報を追加
+  const tripData={
+    mitsumori,date,travelerNo,
+    travelerName:travelerObj?travelerObj.name:'',
+    days,nights,dest,purpose,overseas,
+    daily:days*cfg.daily,
+    hotel:nights>0?nights*cfg.hotel:0,
+    kaigai:overseas==='1'?cfg.kaigai:0
+  };
+  // 既存の同番号を置き換え
+  const existing=pendingTrips.findIndex(t=>t.mitsumori===mitsumori);
+  if(existing>=0)pendingTrips[existing]=tripData;
+  else pendingTrips.push(tripData);
+
+  // 精算リストから同番号を削除してから追加
+  expenses=expenses.filter(e=>String(e.mitsumori)!==String(mitsumori));
+
+  // バス自動追加チェック
+  const busStation=cfg.busStation;
+  const addedRoutes=[...qRoutes];
+
+  // バス自動追加
+  const needsBus=addedRoutes.some(r=>r.from.includes(busStation)||r.to.includes(busStation));
+  if(needsBus){
+    const hasGo=addedRoutes.some(r=>r.from.includes(busStation));
+    const hasBack=addedRoutes.some(r=>r.to.includes(busStation));
+    const both=hasGo&&hasBack;
+    const busHit=matchRoute('山手南',busStation)||matchRoute(busStation,'山手南');
+    const busFare=busHit?busHit.fare:190;
+    expenses.push({
+      id:Date.now()+Math.random(),mitsumori,date,
+      from:'山手南',to:busStation,
+      route:'京急バス',fare:busFare*(both?2:1),unitFare:busFare,
+      qty:both?2:1,trip:both?'往復':'片道',routeType:'transit',
+      _busAuto:true
+    });
+  }
+
+  // 交通費追加
+  addedRoutes.forEach(r=>{
+    expenses.push({id:Date.now()+Math.random(),mitsumori,date,...r});
+  });
+
+  // その他費用
+  if(taxi>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'タクシー代',fare:taxi,unitFare:taxi,qty:1,trip:'片道',routeType:'transit',_extra:true});
+  if(hotelActual>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'宿泊費（実費）',fare:hotelActual,unitFare:hotelActual,qty:1,trip:'片道',routeType:'transit',_extra:true});
+  else if(nights>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:`宿泊費(${nights}泊×${cfg.hotel.toLocaleString()}円)`,fare:nights*cfg.hotel,unitFare:cfg.hotel,qty:nights,trip:'片道',routeType:'transit',_extra:true});
+  if(parking>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:'駐車料金',fare:parking,unitFare:parking,qty:1,trip:'片道',routeType:'transit',_extra:true});
+
+  // 日当
+  if(days>0) expenses.push({id:Date.now()+Math.random(),mitsumori,date,from:'',to:'',route:`日当(${days}日×${cfg.daily.toLocaleString()}円)`,fare:days*cfg.daily,unitFare:cfg.daily,qty:days,trip:'片道',routeType:'transit',_extra:true});
+
+  renderList();
+
+  // 次の見積番号を採番してリセット
+  const nextNo=autoIncrementMitsumori(mitsumori);
+  document.getElementById('q-mitsumori').value=nextNo;
+  document.getElementById('q-dest').value='';
+  document.getElementById('q-purpose').value='';
+  document.getElementById('q-days').value='1';
+  document.getElementById('q-nights').value='0';
+  document.getElementById('q-overseas').value='';
+  document.getElementById('q-taxi').value='';
+  document.getElementById('q-hotel-actual').value='';
+  document.getElementById('q-parking').value='';
+  qRoutes=[];
+  renderQRoutes();
+
+  showMsg('q-msg',`${mitsumori} を精算リストに追加しました`,'ok');
+  renderPrevCopy();
+}
+
+// お気に入り
+function exportFavorites(){
+  if(!favorites.length){alert('お気に入りが登録されていません');return;}
+  const json=JSON.stringify(favorites,null,2);
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download='お気に入り.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function importFavorites(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!Array.isArray(data))throw new Error('形式が正しくありません');
+      favorites=data;
+      localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+      renderFavorites();
+      showMsg('q-msg',`${favorites.length}件のお気に入りを読み込みました`,'ok');
+    }catch(err){
+      alert('読み込み失敗: '+err.message);
+    }
+    document.getElementById('fi-favorites').value='';
+  };
+  reader.readAsText(file);
+}
+
+function saveFavorite(){
+  const dest=document.getElementById('q-dest').value.trim();
+  const purpose=document.getElementById('q-purpose').value.trim();
+  if(!dest&&!qRoutes.length){showMsg('q-msg','出張先か交通費を入力してからお気に入りに登録してください','err');return;}
+  const label=dest||(qRoutes.map(r=>r.to).join('・'));
+  favorites.push({label,dest,purpose,routes:[...qRoutes]});
+  localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+  renderFavorites();
+  showMsg('q-msg','お気に入りに登録しました','ok');
+}
+
+function renderFavorites(){
+  const el=document.getElementById('favorite-list');
+  if(!el)return;
+  if(!favorites.length){
+    el.innerHTML='<span style="font-size:12px;color:var(--t3);">登録されたお気に入りがありません</span>';
+    return;
+  }
+  el.innerHTML=favorites.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="btn btn-sm" onclick="loadFavorite(${i})" style="background:var(--info-bg);border-color:var(--info-b);color:var(--info);">★ ${f.label}</button>
+      <button class="del-btn" onclick="deleteFavorite(${i})" style="font-size:11px;">✕</button>
+    </div>`).join('');
+}
+
+function loadFavorite(i){
+  const f=favorites[i];
+  if(!f)return;
+  document.getElementById('q-dest').value=f.dest||'';
+  document.getElementById('q-purpose').value=f.purpose||'';
+  qRoutes=[...f.routes];
+  renderQRoutes();
+  showMsg('q-msg',`「${f.label}」を読み込みました`,'ok');
+}
+
+function exportFavorites(){
+  if(!favorites.length){alert('お気に入りが登録されていません');return;}
+  const wb=XLSX.utils.book_new();
+  // お気に入りヘッダー情報シート
+  const favRows=[['ラベル','出張先','用件'],...favorites.map(f=>[f.label,f.dest||'',f.purpose||''])];
+  const wsFav=XLSX.utils.aoa_to_sheet(favRows);
+  XLSX.utils.book_append_sheet(wb,'favorites',wsFav);
+  // 交通費ルートシート
+  const routeRows=[['ラベル','出発地','目的地','交通手段','経路番号','片道運賃','往復']];
+  favorites.forEach(f=>{
+    (f.routes||[]).forEach(r=>{
+      routeRows.push([f.label,r.from,r.to,r.route,r.routeNo||'',r.unitFare,r.qty]);
+    });
+  });
+  const wsRoutes=XLSX.utils.aoa_to_sheet(routeRows);
+  XLSX.utils.book_append_sheet(wb,'routes',wsRoutes);
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'base64'});
+  const a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+wbout;
+  a.download='お気に入り.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function importFavorites(file){
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:true});
+      const favWs=wb.Sheets['favorites'];
+      const routeWs=wb.Sheets['routes'];
+      if(!favWs){alert('お気に入りファイルの形式が正しくありません');return;}
+      const favRows=XLSX.utils.sheet_to_json(favWs,{header:1,raw:true}).slice(1);
+      const routeRows=routeWs?XLSX.utils.sheet_to_json(routeWs,{header:1,raw:true}).slice(1):[];
+      const imported=favRows.map(r=>({
+        label:String(r[0]||''),
+        dest:String(r[1]||''),
+        purpose:String(r[2]||''),
+        routes:routeRows.filter(rr=>String(rr[0]||'')=== String(r[0]||'')).map(rr=>({
+          from:String(rr[1]||''),
+          to:String(rr[2]||''),
+          route:String(rr[3]||''),
+          routeNo:rr[4]||null,
+          unitFare:parseInt(rr[5])||0,
+          fare:(parseInt(rr[5])||0)*(parseInt(rr[6])||1),
+          qty:parseInt(rr[6])||1,
+          trip:parseInt(rr[6])===2?'往復':'片道',
+          routeType:'transit'
+        }))
+      })).filter(f=>f.label);
+      if(!imported.length){alert('データが見つかりませんでした');return;}
+      if(confirm(`${imported.length}件のお気に入りをインポートします。現在のお気に入りに追加しますか？`)){
+        favorites=[...favorites,...imported];
+      }else{
+        favorites=imported;
+      }
+      localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+      renderFavorites();
+      document.getElementById('fi-favorites').value='';
+      showMsg('q-msg',`${imported.length}件インポートしました`,'ok');
+    }catch(err){
+      alert('読み込み失敗: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+
+function deleteFavorite(i){
+  favorites.splice(i,1);
+  localStorage.setItem('ryohi_favorites',JSON.stringify(favorites));
+  renderFavorites();
+}
+
+// 前回コピー
+function renderPrevCopy(){
+  const card=document.getElementById('prev-copy-card');
+  const el=document.getElementById('prev-copy-list');
+  if(!card||!el)return;
+  // 精算リストから見積番号一覧を取得
+  const nos=[...new Set(expenses.map(e=>String(e.mitsumori)))];
+  if(!nos.length){card.style.display='none';return;}
+  card.style.display='block';
+  el.innerHTML=nos.map(no=>`
+    <button class="btn btn-sm" onclick="copyFromPrev('${no}')" style="background:var(--ok-bg);border-color:var(--ok-b);color:var(--ok);">
+      ${no} をコピー
+    </button>`).join('');
+}
+
+function copyFromPrev(no){
+  // 出張情報をコピー
+  const trip=pendingTrips.find(t=>String(t.mitsumori)===no);
+  if(trip){
+    document.getElementById('q-dest').value=trip.dest||'';
+    document.getElementById('q-purpose').value=trip.purpose||'';
+    document.getElementById('q-days').value=trip.days||1;
+    document.getElementById('q-nights').value=trip.nights||0;
+    document.getElementById('q-overseas').value=trip.overseas||'';
+    const tSel=document.getElementById('q-traveler');
+    if(trip.travelerNo)tSel.value=trip.travelerNo;
+  }
+  // 交通費をコピー（バス自動追加・extraを除く）
+  const prevExpenses=expenses.filter(e=>String(e.mitsumori)===no&&!e._busAuto&&!e._extra&&e.routeType!=='gas');
+  qRoutes=prevExpenses.map(e=>({
+    from:e.from,to:e.to,route:e.route,routeNo:e.routeNo,
+    unitFare:e.unitFare,fare:e.unitFare*(e.qty||1),
+    qty:e.qty||1,trip:e.trip||'片道',routeType:e.routeType
+  }));
+  renderQRoutes();
+  showMsg('q-msg',`${no} の内容をコピーしました。日付を変更して追加してください。`,'ok');
+}
+
+
+function assignRouteNumbers(rows){
+  const seen=new Map();
+  rows.forEach(e=>{const k=`${e.from}|${e.to}|${e.route}|${e.routeType}`;if(!seen.has(k))seen.set(k,{...e});});
+  const mn=getMaxNums();let gn=mn.gen+1,h5=mn.h500+1,h7=mn.h700+1;
+  const nm=new Map();
+  [...seen.values()].forEach(e=>{
+    const k=`${e.from}|${e.to}|${e.route}|${e.routeType}`;
+    // マスタ登録済みならそのマスタ番号を使う
+    if(e.routeNo){nm.set(k,e.routeNo);return;}
+    nm.set(k,e.routeType==='flight'?h7++:(e.routeType==='highway'||e.routeType==='gas')?h5++:gn++);
+  });
+  return nm;
+}
+
+const typeTag=t=>t==='highway'?`<span class="badge b-500" style="font-size:10px;">高速</span>`:t==='gas'?`<span class="badge b-500" style="font-size:10px;">ガソリン</span>`:t==='flight'?`<span class="badge b-700" style="font-size:10px;">飛行機</span>`:'';
+
+function renderList(){
+  const el=document.getElementById('expense-body'),ea=document.getElementById('export-area');
+  if(!expenses.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--t3);font-size:13px;">まだ交通費が追加されていません</div>';ea.style.display='none';return;}
+  const total=expenses.reduce((s,e)=>s+e.fare,0);
+  const sorted=[...expenses].sort((a,b)=>a.mitsumori.localeCompare(b.mitsumori)||a.date.localeCompare(b.date));
+  const groups={};
+  sorted.forEach(e=>{const k=e.mitsumori||'（未設定）';if(!groups[k])groups[k]=[];groups[k].push(e);});
+  let html='';
+  Object.entries(groups).forEach(([mitsumori,items])=>{
+    const gtotal=items.reduce((s,e)=>s+e.fare,0);
+    // 出張情報を取得
+    const trip=pendingTrips.find(t=>t.mitsumori===mitsumori);
+    // 旅行者番号で色を決定
+    const travelerNo=trip?trip.travelerNo:'';
+    const tColor={
+      '1':{'bg':'#e8f0fb','border':'rgba(26,79,160,.3)','text':'#1a4fa0'},
+      '2':{'bg':'#fef3e2','border':'rgba(146,80,10,.3)','text':'#92500a'},
+    }[travelerNo]||{'bg':'var(--bg)','border':'var(--border)','text':'var(--t2)'};
+
+    html+=`<div class="grp-header" style="margin-top:12px;color:${tColor.text};">見積番号　${mitsumori}</div>`;
+    if(trip){
+      html+=`<div style="background:${tColor.bg};border:.5px solid ${tColor.border};border-radius:var(--rs);padding:10px 14px;margin-bottom:8px;font-size:12px;display:flex;flex-wrap:wrap;gap:12px;">
+        <span style="font-weight:500;color:${tColor.text};">${trip.travelerName||trip.travelerNo}</span>
+        <span><span style="color:var(--t3);">出張日</span>　${trip.date}</span>
+        <span><span style="color:var(--t3);">出張先</span>　${trip.dest}</span>
+        ${trip.purpose?`<span><span style="color:var(--t3);">用件</span>　${trip.purpose}</span>`:''}
+        ${trip.days?`<span><span style="color:var(--t3);">出張日数</span>　${trip.days}日</span>`:''}
+        ${trip.nights?`<span><span style="color:var(--t3);">宿泊</span>　${trip.nights}泊</span>`:''}
+        ${trip.daily>0?`<span><span style="color:var(--t3);">日当</span>　¥${trip.daily.toLocaleString()}</span>`:''}
+        ${trip.hotel>0?`<span><span style="color:var(--t3);">宿泊代</span>　¥${trip.hotel.toLocaleString()}</span>`:''}
+        ${trip.kaigai>0?`<span><span style="color:var(--t3);">海外準備金</span>　¥${trip.kaigai.toLocaleString()}</span>`:''}
+        ${trip.overseas==='1'?`<span style="color:var(--info);">海外出張</span>`:''}
+      </div>`;
+    }
+    html+=`<div style="overflow-x:auto;"><table class="tbl"><thead><tr><th>利用日</th><th>区間</th><th>交通手段</th><th style="text-align:center;">数量</th><th style="text-align:right;">金額</th><th style="color:var(--t3);font-weight:400;">行をクリックで編集</th></tr></thead><tbody>`;
+    items.forEach((e,ei)=>{
+      const eidx=expenses.indexOf(e);
+      if(e._editing){
+        const hit=e.from&&e.to?matchRoute(e.from,e.to):null;
+        const extraTypes=['タクシー代','宿泊費（実費）','駐車料金'];
+        const isExtra=!e.from&&!e.to||extraTypes.includes(e.route)||e.route==='';
+        // 未登録行は交通手段をテキスト入力、それ以外は通常
+        const routeCell=isExtra
+          ?`<select onchange="expenses[${eidx}].route=this.value" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
+              <option value="" ${e.route===''?'selected':''}>-- 選択 --</option>
+              ${extraTypes.map(t=>`<option value="${t}" ${e.route===t?'selected':''}>${t}</option>`).join('')}
+            </select>`
+          :`<input type="text" value="${e.route||''}" onchange="expenses[${eidx}].route=this.value" style="width:100px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/>`;
+
+        if(e._unregistered){
+          // 未登録行：区間は固定、交通手段と金額だけ編集
+          html+=`<tr style="background:var(--warn-bg);">
+            <td style="color:var(--t2);font-size:12px;">${e.date}</td>
+            <td style="font-weight:500;">${e.from}→${e.to}</td>
+            <td><input type="text" value="" onchange="expenses[${eidx}].route=this.value" placeholder="例：京急、JR" style="width:110px;padding:3px 5px;font-size:12px;border:.5px solid var(--warn-b);border-radius:4px;background:#fff;"/></td>
+            <td style="text-align:center;">
+              <select onchange="updateExpenseQtyByIdx(${eidx},this.value)" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
+                <option value="1" ${e.qty===1?'selected':''}>1（片道）</option>
+                <option value="2" ${e.qty===2?'selected':''}>2（往復）</option>
+              </select>
+            </td>
+            <td style="text-align:right;">
+              <input type="number" inputmode="numeric" value="${e.unitFare||''}" onchange="updateExpenseFareByIdx(${eidx},parseInt(this.value)||0)" placeholder="運賃" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--warn-b);border-radius:4px;background:#fff;"/>
+            </td>
+            <td><button class="btn btn-sm btn-primary" onclick="confirmExpenseByIdx(${eidx})">確定</button></td>
+          </tr>`;
+        }else{
+          html+=`<tr style="background:var(--info-bg);">
+            <td><input type="date" value="${e.date}" onchange="expenses[${eidx}].date=this.value" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;"/></td>
+            <td style="white-space:nowrap;">
+              <input type="text" value="${e.from||''}" onchange="expenses[${eidx}].from=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="出発地"/>
+              →
+              <input type="text" value="${e.to||''}" onchange="expenses[${eidx}].to=this.value;lookupRouteForExpense(${eidx})" style="width:75px;padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;" placeholder="目的地"/>
+              ${hit?`<span style="font-size:10px;color:var(--ok);margin-left:4px;">✓ ${hit.route}</span>`:''}
+            </td>
+            <td>${routeCell}</td>
+            <td style="text-align:center;">
+              <select onchange="updateExpenseQtyByIdx(${eidx},this.value)" style="padding:3px 5px;font-size:12px;border:.5px solid var(--border);border-radius:4px;background:#fff;">
+                <option value="1" ${e.qty===1?'selected':''}>1（片道）</option>
+                <option value="2" ${e.qty===2?'selected':''}>2（往復）</option>
+              </select>
+            </td>
+            <td style="text-align:right;">
+              <input type="number" inputmode="numeric" value="${e.unitFare||0}" onchange="updateExpenseFareByIdx(${eidx},parseInt(this.value)||0)" style="width:75px;padding:3px 5px;font-size:12px;text-align:right;border:.5px solid var(--border);border-radius:4px;background:#fff;"/>
+            </td>
+            <td><button class="btn btn-sm btn-primary" onclick="confirmExpenseByIdx(${eidx})">確定</button></td>
+          </tr>`;
+        }
+      }else{
+        html+=`<tr style="cursor:pointer;${e._unregistered?'background:var(--warn-bg);':''}" onclick="editExpenseByIdx(${eidx})">
+          <td style="white-space:nowrap;">${e.date}</td>
+          <td>${e.from&&e.to?e.from+'→'+e.to:e.route}</td>
+          <td>${e._unregistered?'<span class="badge b-new">未登録　クリックして入力</span>':`${typeTag(e.routeType)} ${e.from&&e.to?e.route:''}`}</td>
+          <td style="text-align:center;color:var(--t2);">${e.qty}（${e.trip}）</td>
+          <td style="text-align:right;font-weight:500;">${e._unregistered?'<span style="color:var(--warn);">—</span>':`¥${e.fare.toLocaleString()}`}</td>
+          <td><button class="del-btn" onclick="event.stopPropagation();expenses.splice(${eidx},1);renderList()">✕</button></td>
+        </tr>`;
+      }
+    });
+    html+=`</tbody></table></div>
+    <div style="margin:6px 0 8px;">
+      <button class="btn btn-sm" onclick="addExpenseRow('${mitsumori}')">＋ 行を追加</button>
+    </div>
+    <div style="text-align:right;font-size:12px;color:var(--t2);padding:4px 10px 8px;">小計　<strong>¥${gtotal.toLocaleString()}</strong></div>`;
+  });
+  html+=`<div class="total-bar"><span style="font-size:12px;color:var(--t2);">${expenses.length}件</span><span style="font-size:16px;font-weight:500;">合計　¥${total.toLocaleString()}</span></div>`;
+  el.innerHTML=html;ea.style.display='block';
+  updateNumAlloc();
+}
+function lookupRouteForExpense(idx){
+  const e=expenses[idx];if(!e)return;
+  if(!e.from||!e.to)return;
+  const hit=matchRoute(e.from,e.to);
+  if(hit){
+    e.route=hit.route;
+    e.unitFare=hit.fare;
+    e.fare=hit.fare*e.qty;
+    e.routeNo=hit.no;
+    e.routeType='transit';
+    renderList();
+  }
+}
+
+function editExpenseByIdx(idx){
+  expenses.forEach((e,i)=>e._editing=(i===idx));
+  renderList();
+}
+function confirmExpenseByIdx(idx){
+  const e=expenses[idx];
+  if(!e){return;}
+  e._editing=false;
+  // 未登録行で金額と交通手段が入力されたら登録済みに更新
+  if(e._unregistered&&e.unitFare>0&&e.route){
+    e._unregistered=false;
+    e.fare=e.unitFare*e.qty;
+    // 経路マスタに新規追加
+    const existing=matchRoute(e.from,e.to);
+    if(!existing){
+      const mn=getMaxNums();
+      const newNo=mn.gen+1;
+      masterRoutes.push({no:String(newNo),from:e.from,to:e.to,kana:'',route:e.route,fare:e.unitFare});
+      e.routeNo=String(newNo);
+      e._newMaster=true; // 今回新規追加した経路フラグ
+      document.getElementById('max-gen').value=newNo;
+      updateNumPreview();
+      renderMasterList(document.getElementById('master-search')?document.getElementById('master-search').value:'');
+      showMsg('list-msg',`経路マスタに追加しました（${e.from}→${e.to} 経路番号${newNo}）`,'ok');
+    }
+  }else if(!e.routeNo&&e.from&&e.to&&e.unitFare>0&&!e._extra&&!e._busAuto){
+    // 通常行でも未登録ならマスタに追加
+    const existing=matchRoute(e.from,e.to);
+    if(!existing){
+      const mn=getMaxNums();
+      const routeType=e.routeType;
+      let newNo;
+      if(routeType==='highway'||routeType==='gas') newNo=mn.h500+1;
+      else if(routeType==='flight') newNo=mn.h700+1;
+      else newNo=mn.gen+1;
+      masterRoutes.push({no:String(newNo),from:e.from,to:e.to,kana:'',route:e.route,fare:e.unitFare});
+      e.routeNo=String(newNo);
+      e._newMaster=true; // 今回新規追加した経路フラグ
+      if(routeType==='highway'||routeType==='gas') document.getElementById('max-500').value=newNo;
+      else if(routeType==='flight') document.getElementById('max-700').value=newNo;
+      else document.getElementById('max-gen').value=newNo;
+      updateNumPreview();
+      renderMasterList(document.getElementById('master-search')?document.getElementById('master-search').value:'');
+      showMsg('list-msg',`経路マスタに追加しました（${e.from}→${e.to} 経路番号${newNo}）`,'ok');
+    }
+  }
+  renderList();
+}
+function updateExpenseFareByIdx(idx,unitFare){
+  const e=expenses[idx];if(!e)return;
+  e.unitFare=unitFare;e.fare=unitFare*e.qty;
+}
+function updateExpenseQtyByIdx(idx,qty){
+  const e=expenses[idx];if(!e)return;
+  e.qty=parseInt(qty);e.trip=e.qty===2?'往復':'片道';e.fare=e.unitFare*e.qty;
+}
+function delExpense(id){const i=expenses.findIndex(e=>e.id===id);if(i!==-1)expenses.splice(i,1);renderList();}
+
+function editExpense(id){
+  expenses.forEach(e=>e._editing=false);
+  const e=expenses.find(e=>e.id===id);
+  if(e)e._editing=true;
+  renderList();
+}
+function updateExpense(id,field,val){
+  const e=expenses.find(e=>e.id===id);
+  if(e)e[field]=val;
+}
+function updateExpenseFare(id,unitFare){
+  const e=expenses.find(e=>e.id===id);
+  if(!e)return;
+  e.unitFare=unitFare;
+  e.fare=unitFare*e.qty;
+}
+function updateExpenseQty(id,qty){
+  const e=expenses.find(e=>e.id===id);
+  if(!e)return;
+  e.qty=parseInt(qty);
+  e.trip=e.qty===2?'往復':'片道';
+  e.fare=e.unitFare*e.qty;
+}
+function confirmExpenseEdit(id){
+  const e=expenses.find(e=>e.id===id);
+  if(e)e._editing=false;
+  renderList();
+}
+function addExpenseRow(mitsumori){
+  mitsumori=String(mitsumori);
+  const lastItem=expenses.filter(e=>String(e.mitsumori)===mitsumori).slice(-1)[0];
+  const newId=Date.now()+Math.random();
+  const newExpense={
+    id:newId,
+    mitsumori,
+    date:lastItem?lastItem.date:todayStr,
+    from:'',to:'',
+    route:'',
+    fare:0,unitFare:0,qty:1,trip:'片道',
+    routeType:'transit',
+    _editing:true
+  };
+  expenses.push(newExpense);
+  renderList();
+  setTimeout(()=>{
+    const el=document.getElementById('erow_new');
+    if(el)el.scrollIntoView({behavior:'smooth',block:'center'});
+  },50);
+}
+function updateNumAlloc(){
+  // 経路番号プレビューは表示しない
+}
+
+// ============================================================
+// CSV/エクスポート
+// ============================================================
+
+// 経費マスタ対応（高速代は経路マスタ参照のため除外）
+const KEIHI_MAP = {
+  'タクシー代': 1, 'タクシー': 1,
+  'ガソリン代': 2,
+  '駐車料金': 4,
+  '宿泊費（実費）': 5, '宿泊費': 5,
+  'バス': 6,
+  '飛行機': 7,
+};
+function getKeihiNo(route,routeType){
+  // routeTypeで判定
+  if(routeType==='gas')return 2;      // ガソリン代→経費番号2（経路マスタなし）
+  if(routeType==='flight')return 7;   // 飛行機→経費番号7
+  // highway（高速代）は経路マスタ参照なのでここでは返さない
+  if(!route)return '';
+  for(const [k,v] of Object.entries(KEIHI_MAP)){
+    if(route.startsWith(k)||route===k)return v;
+  }
+  return '';
+}
+
+// 見積テーブル行生成
+// フィールド: 見積番号, 出張日, 旅行者番号, 出張先, 用件, 出張日数, 海外出張, 合計, 宿泊日数
+function fmtDate(d){
+  if(!d)return'';
+  // YYYY-MM-DD → YYYY/MM/DD
+  return String(d).replace(/-/g,'/');
+}
+
+function buildMitsumoriRows(){
+  const nos=[...new Set(expenses.map(e=>String(e.mitsumori)))];
+  return nos.map(no=>{
+    const t=pendingTrips.find(t=>String(t.mitsumori)===no);
+    const tno=t?t.travelerNo:document.getElementById('t-traveler-no').value.trim();
+    const dest=t?t.dest:'';
+    const purpose=t?t.purpose:'';
+    const days=t?t.days:'';
+    const nights=t?t.nights:0;
+    const overseas=t&&t.overseas==='1'?'Yes':'No';
+    return[no, fmtDate(t?t.date:''), tno, dest, purpose, days, overseas, '', nights];
+  });
+}
+
+// 見積明細テーブル行生成
+// フィールド: 見積番号, 明細番号, 利用日, 経路番号, 数量, 出発地（車利用）, 目的地（車利用）, 経費番号, 経費
+function buildMeisaiRows(){
+  const sorted=[...expenses].sort((a,b)=>a.mitsumori.localeCompare(String(b.mitsumori))||a.date.localeCompare(b.date));
+  const meisaiNo={};
+  const rows=[];
+  sorted.forEach(e=>{
+    const no=String(e.mitsumori);
+    if(!meisaiNo[no])meisaiNo[no]=1;
+    const seq=meisaiNo[no]++;
+
+    const keihiNo=getKeihiNo(e.route,e.routeType);
+    const isKeihi=keihiNo!=='';
+
+    // 経路番号：マスタ照合済み（routeNoあり）、なければマスタ検索
+    let routeNo='';
+    if(!isKeihi){
+      if(e.routeNo){
+        routeNo=e.routeNo;
+      }else if(e.from&&e.to){
+        const hit=matchRoute(e.from,e.to);
+        if(hit)routeNo=hit.no;
+      }
+    }
+
+    // 車利用（ガソリン代）の場合は「車利用」欄に出発地・目的地を入力
+    // 通常の経路は「出発地」「目的地」はクエリで経路マスタから参照するので空欄
+    const carFrom=e.routeType==='gas'?e.from:'';
+    const carTo=e.routeType==='gas'?e.to:'';
+
+    // 経費金額：往復合計（e.fare）を使う
+    const keihiAmt=isKeihi?e.fare:'';
+
+    rows.push([no, seq, fmtDate(e.date), routeNo, e.qty, carFrom, carTo, keihiNo||'', keihiAmt]);
+  });
+  return rows;
+}
+
+// 経路マスタ新規追加分
+function buildRouteRows(){
+  const sorted=[...expenses].sort((a,b)=>a.date.localeCompare(b.date));
+  const seen=new Set();const rows=[];
+  const excludeKeihi=e=>getKeihiNo(e.route,e.routeType)!=='';
+  sorted.forEach(e=>{
+    if(excludeKeihi(e)||e._busAuto||e._extra)return;
+    // routeNoがあっても_newMasterなら今回新規追加なので出力する
+    if(e.routeNo&&!e._newMaster)return;
+    const k=`${e.from}|${e.to}`;
+    if(!seen.has(k)){
+      seen.add(k);
+      rows.push([e.routeNo||'', e.from, e.to, '', e.route, e.unitFare||e.fare]);
+    }
+  });
+  filledRoutes.forEach(r=>{
+    const key=`${r.from}|${r.to}`;
+    if(!seen.has(key)){seen.add(key);rows.push([r.no,r.from,r.to,r.kana,r.route,r.fare]);}
+  });
+  return rows;
+}
+
+function exportCSV(type){
+  const label=(pendingTrips.length>0?pendingTrips[0].mitsumori:getMitsumori())||String(now.getFullYear())+'01';
+  let header,rows,fn;
+  if(type==='mitsumori'){
+    header=['見積番号','出張日','旅行者番号','出張先','用件','出張日数','海外出張','合計','宿泊日数'];
+    rows=buildMitsumoriRows();
+    fn=`見積_${label}.xlsx`;
+  }else if(type==='meisai'){
+    header=['見積番号','明細番号','利用日','経路番号','数量','出発地（車利用）','目的地（車利用）','経費番号','経費'];
+    rows=buildMeisaiRows();
+    fn=`見積明細_${label}.xlsx`;
+  }else if(type==='route'){
+    header=['経路番号','出発地','目的地','目的地ふりがな','利用交通機関','交通費'];
+    rows=buildRouteRows();
+    fn=`経路マスタ追加分_${label}.xlsx`;
+  }
+  dlXlsx(header,rows,fn);
+}
+
+function exportAll(){
+  exportCSV('mitsumori');
+  setTimeout(()=>exportCSV('meisai'),300);
+  setTimeout(()=>exportCSV('route'),600);
+}
+
+function dlXlsx(header,rows,fn,sheetName){
+  const wb=XLSX.utils.book_new();
+  // null/undefinedを空文字に変換
+  const safeRows=rows.map(r=>r.map(v=>v==null?'':v));
+  const ws=XLSX.utils.aoa_to_sheet([header,...safeRows]);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName||'Sheet1');
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'base64'});
+  const a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+wbout;
+  a.download=fn;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+function dl(csv,fn){
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download=fn;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+</script>
+</body>
+</html>
