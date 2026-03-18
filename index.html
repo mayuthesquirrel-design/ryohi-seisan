@@ -1122,7 +1122,18 @@ function updatePendingRow(idx,field,val){
 
 function confirmEdit(idx){
   const r=pendingRows[idx];
-  if(r)r._editing=false;
+  if(!r){return;}
+  r._editing=false;
+  // from/toが変わった場合にマスタ再照合してrouteNoを更新
+  if(r.from&&r.to){
+    const hit=matchRoute(r.from,r.to);
+    if(hit){
+      r.routeNo=hit.no;
+      if(r._manualFare==null)r._manualFare=null; // マスタ一致したら手動金額リセット
+    }else{
+      r.routeNo=null;
+    }
+  }
   recheckUnregistered();
   renderMatchTable();
   updateStep4();
