@@ -516,7 +516,12 @@ body{background:var(--bg);color:var(--text);font-family:'Meiryo','メイリオ',
       <div class="page-title">使い方</div>
 
       <div class="card">
-        <div class="card-title">基本的な流れ（Excel一括処理）</div>
+        <div class="card-title">テンプレートダウンロード</div>
+        <div style="font-size:13px;color:var(--t2);margin-bottom:12px;line-height:1.8;">出張情報・交通費の入力用Excelテンプレートをダウンロードできます。</div>
+        <button class="btn btn-primary" onclick="downloadTemplate()">旅費精算テンプレート.xlsx をダウンロード ↓</button>
+      </div>
+
+      <div class="card">
         <div class="step-row">
           <div class="step-num">1</div>
           <div class="step-body">
@@ -630,6 +635,34 @@ function nav(n){
       el.value=nextMitsumori();
     }
   }
+}
+
+function downloadTemplate(){
+  const wb=XLSX.utils.book_new();
+
+  // 出張情報シート
+  const tripData=[
+    ['見積番号','利用日','旅行者番号','出張日数','宿泊日数','出張先','用件','海外出張(1=はい)'],
+    ['例：202601（2行目以降は空欄でOK）','例：2026-03-17','例：1','例：2','例：1','例：大阪','例：営業訪問','1 または 空白'],
+  ];
+  const ws1=XLSX.utils.aoa_to_sheet(tripData);
+  ws1['!cols']=[{wch:28},{wch:16},{wch:14},{wch:12},{wch:12},{wch:16},{wch:16},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,'出張情報',ws1);
+
+  // 交通費シート
+  const transData=[
+    ['見積番号','利用日','出発地','目的地','車利用(1=はい)','km（ガソリン代）','往復(空欄=往復/1=片道)','高速代（円）','タクシー代（円）','宿泊費（実費・円）','駐車料金（円）'],
+    ['例：202601（出張情報と一致させる）','例：2026-03-17','例：新宿','例：渋谷','1 または 空白','例：52.3（往復合計km、車利用時のみ）','空欄=往復　1=片道','例：760（車利用時のみ）','例：2500','例：9800（空欄=日数×12,000円自動）','例：1200'],
+  ];
+  const ws2=XLSX.utils.aoa_to_sheet(transData);
+  ws2['!cols']=[{wch:28},{wch:16},{wch:14},{wch:14},{wch:14},{wch:20},{wch:20},{wch:16},{wch:14},{wch:22},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,'交通費',ws2);
+
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'base64'});
+  const a=document.createElement('a');
+  a.href='data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,'+wbout;
+  a.download='旅費精算テンプレート.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function clearExpenses(){
