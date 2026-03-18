@@ -5,13 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>旅費精算アプリ</title>
 
-<script src="xlsx.full.min.js"></script>
-<script>
-// CDN失敗時のフォールバック（ローカル環境用）
-if(typeof XLSX==='undefined'){
-  document.write('<script src="xlsx.full.min.js"><\/script>');
-}
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#f8f7f4;--surface:#fff;--border:rgba(0,0,0,.1);--border-h:rgba(0,0,0,.2);
